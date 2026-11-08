@@ -105,6 +105,11 @@ main{max-width:980px;margin:0 auto;padding:24px 40px}
 .x{border:0;background:none;color:var(--mu);font-size:16px;cursor:pointer;padding:0 4px}
 #toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);max-width:90vw;background:var(--tx);color:var(--bg);padding:9px 16px;border-radius:20px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:200}
 #toast.o{opacity:1}
+.fab{position:fixed;right:20px;bottom:88px;width:56px;height:56px;border-radius:50%;border:0;background:#d4537e;color:#fff;font-size:30px;line-height:1;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.25);z-index:40}
+.sub2{font-size:11px;font-weight:600;color:var(--mu);margin:12px 0 6px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.chip{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:16px;padding:6px 12px;font-size:13px;cursor:pointer}
+@media (min-width:900px){.fab{bottom:28px;right:32px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -122,7 +127,8 @@ const M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'
 const SEC={td:['TODAY','var(--p)'],cf:['CARRIED FORWARD','var(--or)'],on:['ONGOING','var(--gr)'],dn:['DONE','var(--mu)'],up:['UPCOMING','var(--bl)']};
 let todos=[],tab='todo',month=new Date(),sel=null;
 try{todos=JSON.parse(localStorage.getItem('mybook.todos')||'[]')}catch(e){}
-const save=()=>{try{localStorage.setItem('mybook.todos',JSON.stringify(todos))}catch(e){}};
+let ds=[];try{ds=JSON.parse(localStorage.getItem('mybook.sessions')||'[]')}catch(e){}
+const save=()=>{try{localStorage.setItem('mybook.todos',JSON.stringify(todos));localStorage.setItem('mybook.sessions',JSON.stringify(ds))}catch(e){}};
 const dk=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const fmt=k=>{const p=k.split('-');return M[p[1]-1]+' '+(+p[2])};
 const tm=iso=>{const d=new Date(iso);return isNaN(d)?'':d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})};
@@ -169,7 +175,7 @@ function render(){
     const y=month.getFullYear(),m=month.getMonth(),first=new Date(y,m,1).getDay(),n=new Date(y,m+1,0).getDate();
     let cells='';for(const l of'SMTWTFS')cells+=`<span>${l}</span>`;
     for(let i=0;i<first;i++)cells+='<button class="e"></button>';
-    for(let i=1;i<=n;i++){const k=dk(new Date(y,m,i)),has=dayTasks(k).length||sessionsOn(k).length;
+    for(let i=1;i<=n;i++){const k=dk(new Date(y,m,i)),has=dayTasks(k).length||sessionsOn(k).length||dsOn(k).length;
       cells+=`<button class="${k===today?'t':''} ${k===sel?'s':''}" data-day="${k}">${i}${has?'<i></i>':''}</button>`}
     let det='<div class="empty">Tap a day to view or add tasks</div>';
     if(sel){const l=dayTasks(sel);
@@ -231,6 +237,13 @@ document.addEventListener('click',e=>{
   else if(a==='imp')importText();
   else if(a==='inst')installApp();
   else if(a==='ses'&&t){e.stopPropagation();toggleSession(t);const s=document.getElementById('ss');if(s&&mod.classList.contains('o'))s.outerHTML=sessHtml(t)}
+  else if(a==='dsn')dsNew();
+  else if(a==='dsg')dsStart();
+  else if(a==='dsc'){const i=document.getElementById('dn');if(i){i.value=el.dataset.n;i.focus()}}
+  else if(a==='dsp'){dsStop();closeMod()}
+  else if(a==='dso'){const x=ds.find(y=>y.id===el.dataset.id);if(x)dsMod(x)}
+  else if(a==='dsv'){const x=ds.find(y=>y.id===el.dataset.id),v=document.getElementById('dn').value.trim();if(x&&v)x.name=v;save();closeMod();render()}
+  else if(a==='dsx'){ds=ds.filter(y=>y.id!==el.dataset.id);save();closeMod();render()}
   else if(a==='dss'&&t){e.stopPropagation();t.sessions.splice(+el.dataset.i,1);save();render();const s=document.getElementById('ss');if(s)s.outerHTML=sessHtml(t)}
 });
 document.addEventListener('change',e=>{
@@ -243,7 +256,7 @@ function gcal(t){
   const u='https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(t.title)+'&dates='+d.split('-').join('')+'/'+dk(n).split('-').join('')+'&details='+encodeURIComponent('Added from MyBook');
   window.open(u,'_blank','noopener');
 }
-const payload=()=>JSON.stringify({app:'mybook',version:1,exported:new Date().toISOString(),todos},null,2);
+const payload=()=>JSON.stringify({app:'mybook',version:1,exported:new Date().toISOString(),todos,sessions:ds},null,2);
 function msg(s){const m=document.getElementById('dm');if(m)m.textContent=s}
 function exportData(){
   try{const b=new Blob([payload()],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='mybook-backup-'+dk()+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);msg('Backup downloaded.')}catch(e){msg('Download failed. Use Copy backup instead.')}
@@ -265,6 +278,7 @@ function applyImport(txt){
   const rep=document.getElementById('rp').checked;
   let n=list.length;
   if(rep)todos=list;else{const ids=new Set(todos.map(t=>t.id));n=0;list.forEach(t=>{if(!ids.has(t.id)){todos.push(t);n++}})}
+  const dl=(j&&Array.isArray(j.sessions)?j.sessions:[]).map(cleanD).filter(Boolean);if(rep)ds=dl;else{const di=new Set(ds.map(x=>x.id));dl.forEach(x=>{if(!di.has(x.id))ds.push(x)})}
   save();render();msg((rep?'Replaced all tasks with ':'Imported ')+n+' task'+(n===1?'':'s')+'.');
 }
 function importText(){applyImport(document.getElementById('pt').value)}
@@ -299,25 +313,57 @@ function toggleSession(t){
   t.sessions=t.sessions||[];
   const l=t.sessions[t.sessions.length-1],now=new Date().toISOString();
   if(l&&!l.e){l.e=now;toast('Session stopped · '+dur(sMs(l)))}
-  else{const r=run();if(r)r.l.e=now;t.sessions.push({s:now,e:null});toast(r?'Switched the session to this task':'Session started')}
+  else{const r=run(),d=runD();if(r)r.l.e=now;if(d)d.e=now;t.sessions.push({s:now,e:null});toast(r||d?'Switched the session to this task':'Session started')}
   try{if(navigator.vibrate)navigator.vibrate(30)}catch(e){}
   save();render();
 }
 function sessionsOn(day){const a=[];todos.forEach(t=>(t.sessions||[]).forEach(x=>{if(dk(new Date(x.s))===day)a.push({t,x})}));return a.sort((p,q)=>new Date(q.x.s)-new Date(p.x.s))}
 function sessRows(list){return list.map(o=>`<div class="srow" data-a="open" data-id="${o.t.id}"><div class="bd"><div class="tt">${esc(o.t.title)}</div><div class="mt"><span>${tm(o.x.s)} – ${o.x.e?tm(o.x.e):'now'}</span></div></div>${o.x.e?'<b>'+dur(sMs(o.x))+'</b>':'<b class="live run" data-s="'+o.x.s+'">'+clk(sMs(o.x))+'</b>'}</div>`).join('')}
-function sessBox(day){const l=sessionsOn(day),tt=l.reduce((a,o)=>a+sMs(o.x),0);return `<div class="box"><span class="bdg" style="background:rgba(212,83,126,.18);color:#d4537e">Sessions</span><span style="font-size:11px;color:var(--mu)">${l.length?dur(tt)+' total':'None yet'}</span>${sessRows(l)}</div>`}
 function sessHtml(t){
   const q=t.sessions||[],on=isRun(t);
   const rows=q.map((x,i)=>`<div class="ir"><span>${fmt(dk(new Date(x.s)))}, ${tm(x.s)} – ${x.e?tm(x.e):'now'}</span><span>${x.e?dur(sMs(x)):'<b class="live run" data-s="'+x.s+'">'+clk(sMs(x))+'</b>'} <button class="x" data-a="dss" data-id="${t.id}" data-i="${i}" aria-label="Delete session">×</button></span></div>`).reverse().join('');
   return `<div class="sec2" id="ss"><h4>Sessions${q.length?' · '+dur(total(t))+' total':''}</h4>${rows||'<div class="note">No sessions yet. Press and hold the task to start one.</div>'}<button class="btn ${on?'gy':'pp'}" data-a="ses" data-id="${t.id}" style="width:100%;margin-top:10px;padding:11px;font-size:13px">${on?'Stop session':'Start session'}</button></div>`;
 }
+const runD=()=>ds.find(x=>!x.e)||null;
+const cleanD=r=>r&&typeof r.name==='string'&&iso(r.s)?{id:String(r.id||Date.now().toString(36)+Math.random().toString(36).slice(2,5)),name:r.name,s:r.s,e:iso(r.e)}:null;
+const dsOn=day=>ds.filter(x=>dk(new Date(x.s))===day).sort((a,b)=>new Date(b.s)-new Date(a.s));
+const sumD=l=>l.reduce((a,x)=>a+sMs(x),0),sumT=l=>l.reduce((a,o)=>a+sMs(o.x),0);
+function dRows(l){return l.map(x=>`<div class="srow" data-a="dso" data-id="${x.id}"><div class="bd"><div class="tt">${esc(x.name)}</div><div class="mt"><span>${tm(x.s)} – ${x.e?tm(x.e):'now'}</span></div></div>${x.e?'<b>'+dur(sMs(x))+'</b>':'<b class="live run" data-s="'+x.s+'">'+clk(sMs(x))+'</b>'}</div>`).join('')}
+function sessBox(day){
+  const d=dsOn(day),t=sessionsOn(day),tt=sumD(d)+sumT(t);
+  return `<div class="box"><span class="bdg" style="background:rgba(212,83,126,.18);color:#d4537e">Sessions</span><span style="font-size:11px;color:var(--mu)">${d.length+t.length?dur(tt)+' total':'None yet'}</span>${d.length?'<div class="sub2">Direct sessions</div>'+dRows(d):''}${t.length?'<div class="sub2">From tasks</div>'+sessRows(t):''}</div>`;
+}
+function dsNew(){
+  const names=[...new Set(ds.slice().reverse().map(x=>x.name))].slice(0,6);
+  openMod(`<h3>New session</h3><input class="inp" id="dn" placeholder="What are you working on?" maxlength="80" autocomplete="off">${names.length?'<div class="chips">'+names.map(n=>`<button class="chip" data-a="dsc" data-n="${esc(n)}">${esc(n)}</button>`).join('')+'</div>':''}<div class="note">Starting a session stops any session that is already running.</div><div class="row"><button class="btn pp" data-a="dsg">Start session</button></div>`);
+  const i=document.getElementById('dn');i.addEventListener('keydown',e=>{if(e.key==='Enter')dsStart()});
+  setTimeout(()=>i.focus(),50);
+}
+function dsStart(){
+  const el=document.getElementById('dn'),name=(el&&el.value.trim())||'Untitled session',now=new Date().toISOString();
+  const r=run(),d=runD();if(r)r.l.e=now;if(d)d.e=now;
+  ds.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),name,s:now,e:null});
+  save();closeMod();render();toast('Session started');
+}
+function dsStop(){const d=runD();if(!d)return;d.e=new Date().toISOString();save();render();toast('Session stopped · '+dur(sMs(d)))}
+function dsMod(x){
+  const when=v=>fmt(dk(new Date(v)))+', '+tm(v);
+  openMod(`<h3>Session</h3><input class="inp" id="dn" value="${esc(x.name)}" maxlength="80"><div class="ir"><span>Started</span><span>${when(x.s)}</span></div>${x.e?`<div class="ir"><span>Stopped</span><span>${when(x.e)}</span></div>`:''}<div class="ir"><span>Length</span><span>${x.e?dur(sMs(x)):'<b class="live run" data-s="'+x.s+'">'+clk(sMs(x))+'</b>'}</span></div><div class="row"><button class="btn gy" data-a="dsx" data-id="${x.id}">Delete</button>${x.e?'':'<button class="btn gy" data-a="dsp">Stop</button>'}<button class="btn pp" data-a="dsv" data-id="${x.id}">Save</button></div>`);
+}
 function sessView(){
   const hd=document.querySelector('header'),app=document.getElementById('app'),today=dk();
   hd.style.display='';sub.textContent='';ttl.textContent='Sessions';bar.style.display='none';
-  const tl=sessionsOn(today),tt=tl.reduce((a,o)=>a+sMs(o.x),0);
-  cnt.textContent='Today: '+dur(tt)+' in '+tl.length+' session'+(tl.length===1?'':'s');
-  const r=run(),days=[...new Set(todos.flatMap(t=>(t.sessions||[]).map(x=>dk(new Date(x.s)))))].sort().reverse();
-  app.innerHTML=(r?`<div class="box" style="border-color:#d4537e"><div class="tt">${esc(r.t.title)}</div><div class="mt"><span class="run">● Running</span><b class="live run" data-s="${r.l.s}">${clk(sMs(r.l))}</b></div><button class="btn" data-a="ses" data-id="${r.t.id}" style="margin-top:10px;background:#d4537e">Stop session</button></div>`:'')+(days.length?days.map(d=>{const l=sessionsOn(d);return `<div class="sl" style="color:#d4537e">${d===today?'TODAY':fmt(d).toUpperCase()}, ${dur(l.reduce((a,o)=>a+sMs(o.x),0))}</div><div class="box" style="margin-top:0">${sessRows(l)}</div>`}).join(''):'<div class="empty">No sessions yet. Press and hold a task on the To-Do tab to start timing it.</div>');
+  const dT=dsOn(today),tT=sessionsOn(today),n=dT.length+tT.length;
+  cnt.textContent='Today: '+dur(sumD(dT)+sumT(tT))+' in '+n+' session'+(n===1?'':'s');
+  const r=run(),rd=runD();
+  const banner=rd?`<div class="box" style="border-color:#d4537e"><div class="tt">${esc(rd.name)}</div><div class="mt"><span class="run">● Running</span><b class="live run" data-s="${rd.s}">${clk(sMs(rd))}</b></div><button class="btn" data-a="dsp" style="margin-top:10px;background:#d4537e">Stop session</button></div>`
+   :r?`<div class="box" style="border-color:#d4537e"><div class="tt">${esc(r.t.title)}</div><div class="mt"><span class="run">● Running</span><b class="live run" data-s="${r.l.s}">${clk(sMs(r.l))}</b></div><button class="btn" data-a="ses" data-id="${r.t.id}" style="margin-top:10px;background:#d4537e">Stop session</button></div>`:'';
+  const blk=(l,tot,rows)=>`<div class="sub2">${l} · ${dur(tot)}</div><div class="box" style="margin-top:0">${rows}</div>`;
+  const blocks=day=>{const d=dsOn(day),t=sessionsOn(day);return(d.length?blk('Direct sessions',sumD(d),dRows(d)):'')+(t.length?blk('From tasks',sumT(t),sessRows(t)):'')};
+  const days=[...new Set([...todos.flatMap(t=>(t.sessions||[]).map(x=>dk(new Date(x.s)))),...ds.map(x=>dk(new Date(x.s)))])].filter(d=>d!==today).sort().reverse();
+  app.innerHTML=banner+'<div class="sl" style="color:#d4537e">TODAY</div>'+(blocks(today)||'<div class="empty" style="padding:20px">Nothing yet today. Tap + to start a session, or press and hold a task.</div>')
+   +(days.length?'<div class="sl" style="color:var(--mu);margin-top:24px">HISTORY</div>'+days.map(d=>`<div class="sub2" style="font-size:13px;color:var(--tx);margin-top:16px">${fmt(d)}, ${d.slice(0,4)} · ${dur(sumD(dsOn(d))+sumT(sessionsOn(d)))}</div>`+blocks(d)).join(''):'')
+   +'<button class="fab" data-a="dsn" aria-label="New session">+</button>';
 }
 setInterval(()=>{document.querySelectorAll('.live').forEach(el=>{el.textContent=clk(Date.now()-new Date(el.dataset.s))})},1000);
 const lpCancel=()=>{clearTimeout(lpT);lpT=null};
