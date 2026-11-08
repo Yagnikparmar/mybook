@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>MyBook</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#7f77dd">
 <style>
 :root{--bg:#f8f7ff;--card:#fff;--tx:#2c2c2a;--mu:#888780;--bd:#d3d1c7;--p:#7f77dd;--pd:#534ab7;--pl:#eeedfe;--or:#e07a3a;--gr:#1d9e75;--bl:#7b9fe0;--cl:#f3f3ee;--up:#f0f4ff;--ot:#faece7;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17161f;--card:#232130;--tx:#ecebf5;--mu:#a09fb0;--bd:#3d3a52;--pl:#2e2a55;--cl:#1e1d28;--up:#1f2538;--ot:#3a2620;color-scheme:dark}}
@@ -11,7 +13,7 @@
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 #shell{max-width:640px;margin:0 auto;min-height:100vh;padding-bottom:84px}
-header{background:var(--p);color:#fff;padding:18px 20px;border-radius:0 0 24px 24px}
+header{position:relative;background:var(--p);color:#fff;padding:18px 20px;border-radius:0 0 24px 24px}
 header small{color:#d6d3f7;font-size:13px}
 header h1{margin:2px 0;font-size:26px}
 .bar{height:8px;border-radius:8px;background:var(--pd);overflow:hidden;margin-top:10px}
@@ -22,6 +24,14 @@ main{padding:16px}
 .card{position:relative;display:flex;gap:12px;align-items:flex-start;background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:11px 12px;margin-bottom:8px;cursor:pointer;touch-action:pan-y;transition:transform .15s}
 .card.cf{border-color:#f0997b}.card.on{border-color:#7dcfb0}.card.up{border-color:#9bb8f0;background:var(--up)}
 .card.cl{background:var(--cl);border-color:transparent;color:var(--mu)}
+.sw{position:relative;margin-bottom:8px;border-radius:14px;background:#f0997b;overflow:hidden}
+.sw:after{content:"Close";position:absolute;right:20px;top:50%;transform:translateY(-50%);color:#fff;font-weight:600;font-size:13px}
+.sw .card{margin-bottom:0;z-index:1}
+.box{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:12px;margin-top:12px}
+.bdg{display:inline-block;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;margin-right:8px}
+.lg{display:flex;gap:14px;margin:10px 0;font-size:10px;color:var(--mu)}
+.lg i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px}
+.hd{width:40px;height:4px;border-radius:2px;background:var(--bd);margin:0 auto 14px}
 .chk{flex:none;width:24px;height:24px;border-radius:50%;border:2px solid var(--p);background:none;color:#fff;font-size:13px;cursor:pointer;padding:0}
 .chk.on{background:var(--p)}.chk:disabled{border-color:var(--bd);cursor:default}
 .cl .chk.on{background:var(--mu)}
@@ -54,6 +64,11 @@ nav button.a{color:var(--pd);font-weight:600}
 .mh{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-weight:600}
 .mh button{width:34px;height:34px;border-radius:8px;border:1px solid var(--bd);background:var(--card);color:var(--pd);font-size:18px;cursor:pointer}
 .empty{text-align:center;color:var(--mu);padding:36px 10px}
+.gear{position:absolute;top:14px;right:16px;width:36px;height:36px;border:0;border-radius:50%;background:rgba(255,255,255,.2);color:#fff;font-size:18px;cursor:pointer}
+.sec2{margin-top:18px}.sec2 h4{margin:0 0 8px;font-size:14px}
+.note{font-size:12px;color:var(--mu);margin-top:6px}
+.pill{display:inline-block;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;background:var(--pl);color:var(--p)}
+.btn.gc{background:var(--pl);color:var(--p)}
 #mod{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-end;justify-content:center}
 #mod.o{display:flex}
 #mod>div{background:var(--card);width:100%;max-width:640px;border-radius:24px 24px 0 0;padding:20px 20px calc(24px + env(safe-area-inset-bottom,0px));max-height:90vh;overflow:auto}
@@ -66,7 +81,7 @@ nav button.a{color:var(--pd);font-weight:600}
 </head>
 <body>
 <div id="shell">
-  <header><small id="sub"></small><h1 id="ttl"></h1><small id="cnt"></small><div class="bar" id="bar"><i></i></div></header>
+  <header><button class="gear" data-a="gear" aria-label="Backup and data">⚙</button><small id="sub"></small><h1 id="ttl"></h1><small id="cnt"></small><div class="bar" id="bar"><i></i></div></header>
   <main id="app"></main>
 </div>
 <nav><div id="nav"></div></nav>
@@ -91,12 +106,13 @@ function card(t,s){
   const cl=t.closed,dis=cl||s==='up';
   const cls=['card',s==='cf'?'cf':s==='on'?'on':s==='up'?'up':'',cl?'cl':''].join(' ');
   const due=cl?'':`<label class="due">${ico} ${t.due?'Due '+fmt(t.due):'Set due date'}<input type="date" data-a="due" data-id="${t.id}" value="${t.due||''}"></label>`;
-  return `<div class="${cls}" data-a="open" data-id="${t.id}">
+  const h=`<div class="${cls}" data-a="open" data-id="${t.id}">
   <button class="chk ${t.done?'on':''}" data-a="tog" data-id="${t.id}" ${dis?'disabled':''}>${t.done?'✓':''}</button>
   <div class="bd"><div class="tt ${t.done?'dn':''}">${esc(t.title)}</div>
   <div class="mt">${due}${s==='cf'&&!cl?`<span>From ${fmt(t.created)}</span>`:''}${t.appr?`<span class="ok">Approved ${fmt(t.appr)}</span>`:''}${t.done&&t.comp?`<span class="fin">Done ${fmt(t.comp)}</span>`:''}${cl?'<span>Closed</span>':''}</div></div>
   ${s==='up'&&!cl?`<button class="btn" data-a="apr" data-id="${t.id}">Approve</button>`:''}
   ${cl?`<button class="btn rc" data-a="rec" data-id="${t.id}">Recover</button>`:''}</div>`;
+  return cl?h:`<div class="sw">${h}</div>`;
 }
 function groups(list,day){
   return ['td','cf','on','up'].map(s=>{
@@ -118,7 +134,7 @@ function render(){
     app.innerHTML=(groups(todos,today)||'<div class="empty">No tasks yet. Add your first one below.</div>')+
      `<div class="add"><textarea id="ni" rows="1" placeholder="Add a task… (Enter for new line)"></textarea><button class="plus" data-a="add">+</button></div>`;
   }else if(tab==='hist'){
-    hd.style.display='';sub.textContent='';ttl.textContent='History';cnt.textContent='Tap a day to view or add tasks';bar.style.display='none';
+    hd.style.display='';sub.textContent='';ttl.textContent='History';cnt.textContent='Tap any day to view or add entries';bar.style.display='none';
     const y=month.getFullYear(),m=month.getMonth(),first=new Date(y,m,1).getDay(),n=new Date(y,m+1,0).getDate();
     let cells='';for(const l of'SMTWTFS')cells+=`<span>${l}</span>`;
     for(let i=0;i<first;i++)cells+='<button class="e"></button>';
@@ -126,8 +142,9 @@ function render(){
       cells+=`<button class="${k===today?'t':''} ${k===sel?'s':''}" data-day="${k}">${i}${has?'<i></i>':''}</button>`}
     let det='<div class="empty">Tap a day to view or add tasks</div>';
     if(sel){const l=dayTasks(sel);
-      det=`<div class="mh" style="margin-top:18px"><span>${fmt(sel)}, ${sel.slice(0,4)}</span><button style="width:auto;padding:0 12px;font-size:13px;background:var(--p);color:#fff;border:0" data-a="addday">+ Add task</button></div>`+(groups(l,sel)||'<div class="empty">No tasks on this day.</div>')}
-    app.innerHTML=`<div class="mh"><button data-a="pm">‹</button><span>${new Date(y,m,1).toLocaleDateString('en-US',{month:'long',year:'numeric'})}</span><button data-a="nm">›</button></div><div class="cal">${cells}</div>`+det;
+      const dn=l.filter(t=>t.done).length,ph=(n,bg,c)=>`<div class="box"><span class="bdg" style="background:${bg};color:${c}">${n}</span><span style="font-size:12px;color:var(--mu)">Coming soon…</span></div>`;
+      det=`<hr style="border:0;border-top:1px solid var(--bd);margin:16px 0"><div class="mh"><span>${new Date(sel+'T00:00').toLocaleDateString('en-US',{weekday:'short',day:'numeric',month:'long',year:'numeric'})}</span><button style="width:auto;padding:0 12px;font-size:13px;background:var(--p);color:#fff;border:0" data-a="addday">+ Add Task</button></div><div class="box" style="margin-top:0"><span class="bdg" style="background:rgba(127,119,221,.18);color:var(--p)">To-Do</span><span style="font-size:11px;color:var(--mu)">${dn} of ${l.length} done</span>${groups(l,sel)||'<div class="empty" style="padding:16px">No tasks. Tap Add Task to create one.</div>'}</div>`+ph('Habits','rgba(29,158,117,.18)','var(--gr)')+ph('Goals','rgba(186,117,23,.18)','#ba7517')+ph('Diary','rgba(212,83,126,.18)','#d4537e')}
+    app.innerHTML=`<div class="mh"><button data-a="pm">‹</button><span>${new Date(y,m,1).toLocaleDateString('en-US',{month:'long',year:'numeric'})}</span><button data-a="nm">›</button></div><div class="cal">${cells}</div><div class="lg"><span><i style="background:var(--p)"></i>To-Do</span><span><i style="background:var(--gr)"></i>Habits</span><span><i style="background:#ba7517"></i>Goals</span><span><i style="background:#d4537e"></i>Diary</span></div>`+det;
   }else{
     hd.style.display='none';
     const t=TABS.find(x=>x[0]===tab);
@@ -141,12 +158,13 @@ function addTask(title,day){
   todos.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),title,done:false,closed:false,appr:null,created:dk(),due:day,comp:null,clo:null});
   save();render();
 }
-function openMod(h){mc.innerHTML=h;mod.classList.add('o')}
+function openMod(h){mc.innerHTML='<div class="hd"></div>'+h;mod.classList.add('o')}
 function closeMod(){mod.classList.remove('o')}
 function editMod(t){
   const r=(l,v)=>v?`<div class="ir"><span>${l}</span><span>${fmt(v)}</span></div>`:'';
   openMod(`<h3>Edit task</h3><textarea id="et" rows="3">${esc(t.title)}</textarea>
   <div style="margin-top:12px">${r('Created',t.created)}${r('Due',t.due)}${r('Approved',t.appr)}${r('Completed',t.comp)}${r('Closed',t.clo)}</div>
+  <button class="btn gc" data-a="gcal" data-id="${t.id}" style="width:100%;margin-top:14px;padding:12px;font-size:13px">Add to Google Calendar</button>
   <div class="row">${t.closed?`<button class="btn gy" data-a="rec" data-id="${t.id}">Recover</button>`:`<button class="btn gy" data-a="clo" data-id="${t.id}">Close task</button>`}<button class="btn pp" data-a="sv" data-id="${t.id}">Save</button></div>`);
   setTimeout(()=>document.getElementById('et').focus(),50);
 }
@@ -173,10 +191,60 @@ document.addEventListener('click',e=>{
   else if(a==='sad'){addTask(document.getElementById('dt').value,sel);closeMod()}
   else if(a==='pm'){month=new Date(month.getFullYear(),month.getMonth()-1,1);render()}
   else if(a==='nm'){month=new Date(month.getFullYear(),month.getMonth()+1,1);render()}
+  else if(a==='gcal'&&t)gcal(t);
+  else if(a==='gear')dataMod();
+  else if(a==='exp')exportData();
+  else if(a==='cpy')copyData();
+  else if(a==='imp')importText();
 });
 document.addEventListener('change',e=>{
   if(e.target.dataset.a==='due'){const t=find(e.target.dataset.id);if(t&&e.target.value){t.due=e.target.value;save();render()}}
 });
+const okd=v=>typeof v==='string'&&/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(v)?v:null;
+function gcal(t){
+  const d=t.due||t.created,n=new Date(d+'T00:00');n.setDate(n.getDate()+1);
+  const u='https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(t.title)+'&dates='+d.split('-').join('')+'/'+dk(n).split('-').join('')+'&details='+encodeURIComponent('Added from MyBook');
+  window.open(u,'_blank','noopener');
+}
+const payload=()=>JSON.stringify({app:'mybook',version:1,exported:new Date().toISOString(),todos},null,2);
+function msg(s){const m=document.getElementById('dm');if(m)m.textContent=s}
+function exportData(){
+  try{const b=new Blob([payload()],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='mybook-backup-'+dk()+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);msg('Backup downloaded.')}catch(e){msg('Download failed. Use Copy backup instead.')}
+}
+function copyData(){
+  const p=payload();
+  (navigator.clipboard?navigator.clipboard.writeText(p):Promise.reject()).then(()=>msg('Backup copied to clipboard.')).catch(()=>{const x=document.getElementById('pt');x.value=p;x.select();msg('Copy the backup from the box below.')});
+}
+function clean(r){
+  if(!r||typeof r!=='object'||typeof r.title!=='string'||!okd(r.created))return null;
+  return{id:String(r.id||Date.now().toString(36)+Math.random().toString(36).slice(2,5)),title:r.title,done:!!r.done,closed:!!r.closed,appr:okd(r.appr),created:r.created,due:okd(r.due),comp:okd(r.comp),clo:okd(r.clo)};
+}
+function applyImport(txt){
+  let j;try{j=JSON.parse(txt)}catch(e){return msg('That is not valid JSON.')}
+  const arr=Array.isArray(j)?j:(j&&Array.isArray(j.todos)?j.todos:null);
+  if(!arr)return msg('No tasks found in this backup.');
+  const list=arr.map(clean).filter(Boolean);
+  if(!list.length)return msg('No valid tasks found in this backup.');
+  const rep=document.getElementById('rp').checked;
+  let n=list.length;
+  if(rep)todos=list;else{const ids=new Set(todos.map(t=>t.id));n=0;list.forEach(t=>{if(!ids.has(t.id)){todos.push(t);n++}})}
+  save();render();msg((rep?'Replaced all tasks with ':'Imported ')+n+' task'+(n===1?'':'s')+'.');
+}
+function importText(){applyImport(document.getElementById('pt').value)}
+document.addEventListener('change',e=>{
+  if(e.target.id==='fi'){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>applyImport(String(r.result));r.onerror=()=>msg('Could not read that file.');r.readAsText(f);e.target.value=''}
+});
+function dataMod(){
+  openMod(`<h3>Backup &amp; data</h3>
+  <span class="pill">${navigator.onLine?'Online':'Offline'}</span>
+  <div class="note">Your tasks are stored on this device (${todos.length} saved), so MyBook works without internet. Export a backup to keep them safe or move them to another device.</div>
+  <div class="sec2"><h4>Export</h4><div class="row" style="margin-top:0"><button class="btn pp" data-a="exp">Download backup</button><button class="btn gy" data-a="cpy">Copy backup</button></div></div>
+  <div class="sec2"><h4>Import</h4><input type="file" id="fi" accept=".json,application/json" class="inp">
+  <textarea id="pt" rows="3" placeholder="Or paste backup JSON here…" style="margin-top:8px"></textarea>
+  <label class="note" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="rp"> Replace all existing tasks (otherwise new tasks are merged in)</label>
+  <div class="row" style="margin-top:10px"><button class="btn pp" data-a="imp">Import pasted backup</button></div></div>
+  <div class="note" id="dm" style="margin-top:12px;font-weight:600;color:var(--p)"></div>`);
+}
 // swipe left to close
 let sx=0,sc=null;
 document.addEventListener('touchstart',e=>{sc=e.target.closest('.card:not(.cl)');sx=e.touches[0].clientX},{passive:true});
@@ -184,6 +252,8 @@ document.addEventListener('touchmove',e=>{if(!sc)return;const dx=e.touches[0].cl
 document.addEventListener('touchend',e=>{if(!sc)return;const dx=e.changedTouches[0].clientX-sx,t=find(sc.dataset.id);sc.style.transform='';
   if(dx<-90&&t){if(t.title.trim()===''){todos=todos.filter(x=>x!==t)}else{t.closed=true;t.clo=dk()}save();render()}sc=null});
 render();
+try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
+try{if('serviceWorker' in navigator&&location.protocol.indexOf('http')===0)navigator.serviceWorker.register('sw.js').catch(()=>{})}catch(e){}
 </script>
 </body>
 </html>
