@@ -97,6 +97,14 @@ main{max-width:980px;margin:0 auto;padding:24px 40px}
 .hist{display:grid;grid-template-columns:360px 1fr;gap:28px;align-items:start}
 .hist>div+div hr{display:none}
 }
+.card{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.card.rn{border-color:#d4537e;box-shadow:0 0 0 2px rgba(212,83,126,.35)}
+.run{color:#d4537e;font-weight:600}
+.srow{display:flex;align-items:center;gap:10px;padding:10px 4px;border-top:1px solid var(--bd);cursor:pointer}
+.srow:first-of-type{border-top:0}.srow b{font-size:13px;flex:none}
+.x{border:0;background:none;color:var(--mu);font-size:16px;cursor:pointer;padding:0 4px}
+#toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);max-width:90vw;background:var(--tx);color:var(--bg);padding:9px 16px;border-radius:20px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:200}
+#toast.o{opacity:1}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -107,8 +115,9 @@ main{max-width:980px;margin:0 auto;padding:24px 40px}
 </div>
 <nav><div id="nav"></div></nav>
 <div id="mod"><div id="mc"></div></div>
+<div id="toast"></div>
 <script>
-const TABS=[['todo','✔','To-Do'],['diary','📖','Diary'],['habits','🔁','Habits'],['goals','🚩','Goals'],['quotes','❝','Quotes'],['hist','📅','History']];
+const TABS=[['todo','✔','To-Do'],['sess','⏱️','Sessions'],['habits','🔁','Habits'],['goals','🚩','Goals'],['quotes','❝','Quotes'],['hist','📅','History']];
 const M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const SEC={td:['TODAY','var(--p)'],cf:['CARRIED FORWARD','var(--or)'],on:['ONGOING','var(--gr)'],dn:['DONE','var(--mu)'],up:['UPCOMING','var(--bl)']};
 let todos=[],tab='todo',month=new Date(),sel=null;
@@ -126,12 +135,12 @@ function chime(){try{const c=new (window.AudioContext||window.webkitAudioContext
 
 function card(t,s){
   const cl=t.closed,dis=cl||s==='up';
-  const cls=['card',s==='cf'?'cf':s==='on'?'on':s==='up'?'up':'',cl?'cl':''].join(' ');
+  const cls=['card',s==='cf'?'cf':s==='on'?'on':s==='up'?'up':'',cl?'cl':'',isRun(t)?'rn':''].join(' ');
   const due=cl?'':`<label class="due">${ico} ${t.due?'Due '+fmt(t.due):'Set due date'}<input type="date" data-a="due" data-id="${t.id}" value="${t.due||''}"></label>`;
   const h=`<div class="${cls}" data-a="open" data-id="${t.id}">
   <button class="chk ${t.done?'on':''}" data-a="tog" data-id="${t.id}" ${dis?'disabled':''}>${t.done?'✓':''}</button>
   <div class="bd"><div class="tt ${t.done?'dn':''}">${esc(t.title)}</div>
-  <div class="mt">${due}${s==='cf'&&!cl?`<span>From ${fmt(t.created)}</span>`:''}${t.appr?`<span class="ok">Approved ${fmt(t.appr)}</span>`:''}${t.done&&t.comp?`<span class="fin">Done ${fmt(t.comp)}</span>`:''}${cl?'<span>Closed</span>':''}</div></div>
+  <div class="mt">${due}${s==='cf'&&!cl?`<span>From ${fmt(t.created)}</span>`:''}${t.appr?`<span class="ok">Approved ${fmt(t.appr)}</span>`:''}${t.done&&t.comp?`<span class="fin">Done ${fmt(t.comp)}</span>`:''}${cl?'<span>Closed</span>':''}${sessMeta(t)}</div></div>
   ${s==='up'&&!cl?`<button class="btn" data-a="apr" data-id="${t.id}">Approve</button>`:''}
   ${cl?`<button class="btn rc" data-a="rec" data-id="${t.id}">Recover</button>`:''}</div>`;
   return cl?h:`<div class="sw">${h}</div>`;
@@ -160,14 +169,15 @@ function render(){
     const y=month.getFullYear(),m=month.getMonth(),first=new Date(y,m,1).getDay(),n=new Date(y,m+1,0).getDate();
     let cells='';for(const l of'SMTWTFS')cells+=`<span>${l}</span>`;
     for(let i=0;i<first;i++)cells+='<button class="e"></button>';
-    for(let i=1;i<=n;i++){const k=dk(new Date(y,m,i)),has=dayTasks(k).length;
+    for(let i=1;i<=n;i++){const k=dk(new Date(y,m,i)),has=dayTasks(k).length||sessionsOn(k).length;
       cells+=`<button class="${k===today?'t':''} ${k===sel?'s':''}" data-day="${k}">${i}${has?'<i></i>':''}</button>`}
     let det='<div class="empty">Tap a day to view or add tasks</div>';
     if(sel){const l=dayTasks(sel);
       const dn=l.filter(t=>t.done).length,ph=(n,bg,c)=>`<div class="box"><span class="bdg" style="background:${bg};color:${c}">${n}</span><span style="font-size:12px;color:var(--mu)">Coming soon…</span></div>`;
-      det=`<hr style="border:0;border-top:1px solid var(--bd);margin:16px 0"><div class="mh"><span>${new Date(sel+'T00:00').toLocaleDateString('en-US',{weekday:'short',day:'numeric',month:'long',year:'numeric'})}</span><button style="width:auto;padding:0 12px;font-size:13px;background:var(--p);color:#fff;border:0" data-a="addday">+ Add Task</button></div><div class="box" style="margin-top:0"><span class="bdg" style="background:rgba(127,119,221,.18);color:var(--p)">To-Do</span><span style="font-size:11px;color:var(--mu)">${dn} of ${l.length} done</span>${groups(l,sel)||'<div class="empty" style="padding:16px">No tasks. Tap Add Task to create one.</div>'}</div>`+ph('Habits','rgba(29,158,117,.18)','var(--gr)')+ph('Goals','rgba(186,117,23,.18)','#ba7517')+ph('Diary','rgba(212,83,126,.18)','#d4537e')}
-    app.innerHTML=`<div class="hist"><div><div class="mh"><button data-a="pm">‹</button><span>${new Date(y,m,1).toLocaleDateString('en-US',{month:'long',year:'numeric'})}</span><button data-a="nm">›</button></div><div class="cal">${cells}</div><div class="lg"><span><i style="background:var(--p)"></i>To-Do</span><span><i style="background:var(--gr)"></i>Habits</span><span><i style="background:#ba7517"></i>Goals</span><span><i style="background:#d4537e"></i>Diary</span></div></div><div>`+det+'</div></div>';
+      det=`<hr style="border:0;border-top:1px solid var(--bd);margin:16px 0"><div class="mh"><span>${new Date(sel+'T00:00').toLocaleDateString('en-US',{weekday:'short',day:'numeric',month:'long',year:'numeric'})}</span><button style="width:auto;padding:0 12px;font-size:13px;background:var(--p);color:#fff;border:0" data-a="addday">+ Add Task</button></div><div class="box" style="margin-top:0"><span class="bdg" style="background:rgba(127,119,221,.18);color:var(--p)">To-Do</span><span style="font-size:11px;color:var(--mu)">${dn} of ${l.length} done</span>${groups(l,sel)||'<div class="empty" style="padding:16px">No tasks. Tap Add Task to create one.</div>'}</div>`+ph('Habits','rgba(29,158,117,.18)','var(--gr)')+ph('Goals','rgba(186,117,23,.18)','#ba7517')+sessBox(sel)}
+    app.innerHTML=`<div class="hist"><div><div class="mh"><button data-a="pm">‹</button><span>${new Date(y,m,1).toLocaleDateString('en-US',{month:'long',year:'numeric'})}</span><button data-a="nm">›</button></div><div class="cal">${cells}</div><div class="lg"><span><i style="background:var(--p)"></i>To-Do</span><span><i style="background:var(--gr)"></i>Habits</span><span><i style="background:#ba7517"></i>Goals</span><span><i style="background:#d4537e"></i>Sessions</span></div></div><div>`+det+'</div></div>';
   }else{
+    if(tab==='sess'){sessView();return}
     hd.style.display='none';
     const t=TABS.find(x=>x[0]===tab);
     app.innerHTML=`<div class="empty" style="padding-top:90px"><div style="font-size:48px">${t[1]}</div><h2>${t[2]}</h2>Coming soon…</div>`;
@@ -175,9 +185,9 @@ function render(){
 }
 const dayTasks=k=>todos.filter(t=>t.created===k||t.appr===k||(t.appr&&t.due===k)||(t.done&&t.comp===k));
 
-function addTask(title,day){
+function addTask(title,day,cr){
   title=title.trim();if(!title)return;
-  todos.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),title,done:false,closed:false,appr:null,created:dk(),createdAt:new Date().toISOString(),due:day,comp:null,clo:null});
+  todos.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),title,done:false,closed:false,appr:null,created:cr||dk(),createdAt:cr&&cr!==dk()?null:new Date().toISOString(),due:day,comp:null,clo:null});
   save();render();
 }
 function openMod(h){mc.innerHTML='<div class="hd"></div>'+h;mod.classList.add('o');document.body.classList.add('lock');document.getElementById('shell').inert=true;document.querySelector('nav').inert=true}
@@ -186,7 +196,7 @@ function editMod(t){
   const r=(l,v,ts)=>v?`<div class="ir"><span>${l}</span><span>${fmt(v)}${ts&&tm(ts)?', '+tm(ts):''}</span></div>`:'';
   openMod(`<h3>Edit task</h3><textarea id="et" rows="3">${esc(t.title)}</textarea>
   <div style="margin-top:12px">${r('Created',t.created,t.createdAt)}${r('Due',t.due)}${r('Approved',t.appr,t.apprAt)}${r('Completed',t.comp,t.compAt)}${r('Closed',t.clo,t.cloAt)}</div>
-  <button class="btn gc" data-a="gcal" data-id="${t.id}" style="width:100%;margin-top:14px;padding:12px;font-size:13px">Add to Google Calendar</button>
+  ${sessHtml(t)}<button class="btn gc" data-a="gcal" data-id="${t.id}" style="width:100%;margin-top:14px;padding:12px;font-size:13px">Add to Google Calendar</button>
   <div class="row">${t.closed?`<button class="btn gy" data-a="rec" data-id="${t.id}">Recover</button>`:`<button class="btn gy" data-a="clo" data-id="${t.id}">Close task</button>`}<button class="btn pp" data-a="sv" data-id="${t.id}">Save</button></div>`);
   setTimeout(()=>document.getElementById('et').focus(),50);
 }
@@ -196,6 +206,7 @@ function addDayMod(){
 }
 
 document.addEventListener('click',e=>{
+  if(lpFired){lpFired=false;e.preventDefault();return}
   const tb=e.target.closest('[data-tab]');if(tb){tab=tb.dataset.tab;render();return}
   const dy=e.target.closest('[data-day]');if(dy){sel=dy.dataset.day;render();return}
   if(e.target===mod){closeMod();return}
@@ -210,7 +221,7 @@ document.addEventListener('click',e=>{
   else if(a==='sv'&&t){const v=document.getElementById('et').value.trim();if(v)t.title=v;else todos=todos.filter(x=>x!==t);save();closeMod();render()}
   else if(a==='add'){const i=document.getElementById('ni');addTask(i.value,dk())}
   else if(a==='addday')addDayMod();
-  else if(a==='sad'){addTask(document.getElementById('dt').value,sel);closeMod()}
+  else if(a==='sad'){addTask(document.getElementById('dt').value,sel,sel);closeMod()}
   else if(a==='pm'){month=new Date(month.getFullYear(),month.getMonth()-1,1);render()}
   else if(a==='nm'){month=new Date(month.getFullYear(),month.getMonth()+1,1);render()}
   else if(a==='gcal'&&t)gcal(t);
@@ -219,6 +230,8 @@ document.addEventListener('click',e=>{
   else if(a==='cpy')copyData();
   else if(a==='imp')importText();
   else if(a==='inst')installApp();
+  else if(a==='ses'&&t){e.stopPropagation();toggleSession(t);const s=document.getElementById('ss');if(s&&mod.classList.contains('o'))s.outerHTML=sessHtml(t)}
+  else if(a==='dss'&&t){e.stopPropagation();t.sessions.splice(+el.dataset.i,1);save();render();const s=document.getElementById('ss');if(s)s.outerHTML=sessHtml(t)}
 });
 document.addEventListener('change',e=>{
   if(e.target.dataset.a==='due'){const t=find(e.target.dataset.id);if(t&&e.target.value){t.due=e.target.value;save();render()}}
@@ -241,7 +254,7 @@ function copyData(){
 }
 function clean(r){
   if(!r||typeof r!=='object'||typeof r.title!=='string'||!okd(r.created))return null;
-  return{id:String(r.id||Date.now().toString(36)+Math.random().toString(36).slice(2,5)),title:r.title,done:!!r.done,closed:!!r.closed,appr:okd(r.appr),created:r.created,due:okd(r.due),comp:okd(r.comp),clo:okd(r.clo),createdAt:iso(r.createdAt),apprAt:iso(r.apprAt),compAt:iso(r.compAt),cloAt:iso(r.cloAt)};
+  return{id:String(r.id||Date.now().toString(36)+Math.random().toString(36).slice(2,5)),title:r.title,done:!!r.done,closed:!!r.closed,appr:okd(r.appr),created:r.created,due:okd(r.due),comp:okd(r.comp),clo:okd(r.clo),createdAt:iso(r.createdAt),apprAt:iso(r.apprAt),compAt:iso(r.compAt),cloAt:iso(r.cloAt),sessions:(Array.isArray(r.sessions)?r.sessions:[]).map(x=>x&&iso(x.s)?{s:x.s,e:iso(x.e)}:null).filter(Boolean)};
 }
 function applyImport(txt){
   let j;try{j=JSON.parse(txt)}catch(e){return msg('That is not valid JSON.')}
@@ -271,6 +284,54 @@ function dataMod(){
   <div class="note" id="dm" style="margin-top:12px;font-weight:600;color:var(--p)"></div>`);
 }
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMod()});
+let lpT=null,lpX=0,lpY=0,lpFired=false;
+const isRun=t=>{const q=t.sessions||[],l=q[q.length-1];return!!(l&&!l.e)};
+const run=()=>{for(const t of todos){const q=t.sessions||[],l=q[q.length-1];if(l&&!l.e)return{t,l}}return null};
+const sMs=q=>(q.e?new Date(q.e):new Date())-new Date(q.s);
+const total=t=>(t.sessions||[]).reduce((a,q)=>a+sMs(q),0);
+const dur=ms=>{const s=Math.max(0,Math.round(ms/1000)),h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h?h+'h '+String(m).padStart(2,'0')+'m':m?m+'m '+String(s%60).padStart(2,'0')+'s':s+'s'};
+const clk=ms=>{const s=Math.max(0,Math.floor(ms/1000)),h=Math.floor(s/3600);return(h?h+':':'')+String(Math.floor(s%3600/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')};
+const sessMeta=t=>{const q=t.sessions||[];if(!q.length)return'';const l=q[q.length-1];return!l.e?`<span class="run">● <b class="live" data-s="${l.s}">${clk(sMs(l))}</b></span>`:`<span>⏱️ ${dur(total(t))}</span>`};
+function toast(s){const e=document.getElementById('toast');e.textContent=s;e.classList.add('o');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('o'),1900)}
+function toggleSession(t){
+  if(t.closed)return toast('Recover this task to track a session.');
+  if(sec(t,dk())==='up')return toast('Approve this task to track a session.');
+  t.sessions=t.sessions||[];
+  const l=t.sessions[t.sessions.length-1],now=new Date().toISOString();
+  if(l&&!l.e){l.e=now;toast('Session stopped · '+dur(sMs(l)))}
+  else{const r=run();if(r)r.l.e=now;t.sessions.push({s:now,e:null});toast(r?'Switched the session to this task':'Session started')}
+  try{if(navigator.vibrate)navigator.vibrate(30)}catch(e){}
+  save();render();
+}
+function sessionsOn(day){const a=[];todos.forEach(t=>(t.sessions||[]).forEach(x=>{if(dk(new Date(x.s))===day)a.push({t,x})}));return a.sort((p,q)=>new Date(q.x.s)-new Date(p.x.s))}
+function sessRows(list){return list.map(o=>`<div class="srow" data-a="open" data-id="${o.t.id}"><div class="bd"><div class="tt">${esc(o.t.title)}</div><div class="mt"><span>${tm(o.x.s)} – ${o.x.e?tm(o.x.e):'now'}</span></div></div>${o.x.e?'<b>'+dur(sMs(o.x))+'</b>':'<b class="live run" data-s="'+o.x.s+'">'+clk(sMs(o.x))+'</b>'}</div>`).join('')}
+function sessBox(day){const l=sessionsOn(day),tt=l.reduce((a,o)=>a+sMs(o.x),0);return `<div class="box"><span class="bdg" style="background:rgba(212,83,126,.18);color:#d4537e">Sessions</span><span style="font-size:11px;color:var(--mu)">${l.length?dur(tt)+' total':'None yet'}</span>${sessRows(l)}</div>`}
+function sessHtml(t){
+  const q=t.sessions||[],on=isRun(t);
+  const rows=q.map((x,i)=>`<div class="ir"><span>${fmt(dk(new Date(x.s)))}, ${tm(x.s)} – ${x.e?tm(x.e):'now'}</span><span>${x.e?dur(sMs(x)):'<b class="live run" data-s="'+x.s+'">'+clk(sMs(x))+'</b>'} <button class="x" data-a="dss" data-id="${t.id}" data-i="${i}" aria-label="Delete session">×</button></span></div>`).reverse().join('');
+  return `<div class="sec2" id="ss"><h4>Sessions${q.length?' · '+dur(total(t))+' total':''}</h4>${rows||'<div class="note">No sessions yet. Press and hold the task to start one.</div>'}<button class="btn ${on?'gy':'pp'}" data-a="ses" data-id="${t.id}" style="width:100%;margin-top:10px;padding:11px;font-size:13px">${on?'Stop session':'Start session'}</button></div>`;
+}
+function sessView(){
+  const hd=document.querySelector('header'),app=document.getElementById('app'),today=dk();
+  hd.style.display='';sub.textContent='';ttl.textContent='Sessions';bar.style.display='none';
+  const tl=sessionsOn(today),tt=tl.reduce((a,o)=>a+sMs(o.x),0);
+  cnt.textContent='Today: '+dur(tt)+' in '+tl.length+' session'+(tl.length===1?'':'s');
+  const r=run(),days=[...new Set(todos.flatMap(t=>(t.sessions||[]).map(x=>dk(new Date(x.s)))))].sort().reverse();
+  app.innerHTML=(r?`<div class="box" style="border-color:#d4537e"><div class="tt">${esc(r.t.title)}</div><div class="mt"><span class="run">● Running</span><b class="live run" data-s="${r.l.s}">${clk(sMs(r.l))}</b></div><button class="btn" data-a="ses" data-id="${r.t.id}" style="margin-top:10px;background:#d4537e">Stop session</button></div>`:'')+(days.length?days.map(d=>{const l=sessionsOn(d);return `<div class="sl" style="color:#d4537e">${d===today?'TODAY':fmt(d).toUpperCase()}, ${dur(l.reduce((a,o)=>a+sMs(o.x),0))}</div><div class="box" style="margin-top:0">${sessRows(l)}</div>`}).join(''):'<div class="empty">No sessions yet. Press and hold a task on the To-Do tab to start timing it.</div>');
+}
+setInterval(()=>{document.querySelectorAll('.live').forEach(el=>{el.textContent=clk(Date.now()-new Date(el.dataset.s))})},1000);
+const lpCancel=()=>{clearTimeout(lpT);lpT=null};
+document.addEventListener('pointerdown',e=>{
+  lpFired=false;lpCancel();
+  const c=e.target.closest('.card');
+  if(!c||e.target.closest('button,label,input,textarea'))return;
+  if(e.pointerType==='mouse'&&e.button!==0)return;
+  lpX=e.clientX;lpY=e.clientY;
+  lpT=setTimeout(()=>{lpT=null;lpFired=true;const t=find(c.dataset.id);if(t)toggleSession(t)},550);
+});
+document.addEventListener('pointermove',e=>{if(lpT&&(Math.abs(e.clientX-lpX)>10||Math.abs(e.clientY-lpY)>10))lpCancel()});
+['pointerup','pointercancel'].forEach(n=>document.addEventListener(n,lpCancel));
+document.addEventListener('contextmenu',e=>{if(e.target.closest('.card'))e.preventDefault()});
 let dip=null;
 const isiOS=/iphone|ipad|ipod/i.test(navigator.userAgent),isApp=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true;
 const showInst=v=>{const b=document.getElementById('ib');if(b)b.hidden=!v||isApp};
