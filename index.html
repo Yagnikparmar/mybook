@@ -77,12 +77,32 @@ nav button.a{color:var(--pd);font-weight:600}
 .ir{display:flex;justify-content:space-between;font-size:13px;color:var(--mu);margin-top:7px}
 .row{display:flex;gap:10px;margin-top:16px}
 .row .btn{flex:1;padding:13px;font-size:14px}.btn.pp{background:var(--p)}.btn.gy{background:var(--cl);color:var(--mu)}
+body{overflow-x:hidden}body.lock{overflow:hidden}
+textarea,.inp{font-size:16px}
+.sw{isolation:isolate}
+nav{z-index:50}
+#mod{z-index:100}
+@media (display-mode:standalone){.inst,.insec{display:none!important}}
+@media (min-width:700px){#mod{align-items:center}#mod>div{border-radius:20px;max-width:520px}.hd{display:none}}
+@media (min-width:900px){
+nav{top:0;right:auto;width:210px;border-top:0;border-right:1px solid var(--bd);padding-top:24px}
+nav div{flex-direction:column;max-width:none;padding:0 12px;gap:4px}
+nav button{display:flex;align-items:center;gap:12px;text-align:left;padding:12px 14px;border-radius:12px;font-size:14px}
+nav button b{font-size:18px;display:inline}
+nav button.a{background:var(--pl)}
+#shell{max-width:none;margin:0 0 0 210px;padding-bottom:40px}
+header{padding:26px 40px}
+.gear{right:40px;top:22px}.inst{right:86px}
+main{max-width:980px;margin:0 auto;padding:24px 40px}
+.hist{display:grid;grid-template-columns:360px 1fr;gap:28px;align-items:start}
+.hist>div+div hr{display:none}
+}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
 <div id="shell">
-  <header><button class="gear" data-a="gear" aria-label="Backup and data">⚙</button><small id="sub"></small><h1 id="ttl"></h1><small id="cnt"></small><div class="bar" id="bar"><i></i></div></header>
+  <header><button class="gear" data-a="gear" aria-label="Backup and data">⚙</button><button class="gear inst" id="ib" data-a="inst" hidden>Install app</button><small id="sub"></small><h1 id="ttl"></h1><small id="cnt"></small><div class="bar" id="bar"><i></i></div></header>
   <main id="app"></main>
 </div>
 <nav><div id="nav"></div></nav>
@@ -146,7 +166,7 @@ function render(){
     if(sel){const l=dayTasks(sel);
       const dn=l.filter(t=>t.done).length,ph=(n,bg,c)=>`<div class="box"><span class="bdg" style="background:${bg};color:${c}">${n}</span><span style="font-size:12px;color:var(--mu)">Coming soon…</span></div>`;
       det=`<hr style="border:0;border-top:1px solid var(--bd);margin:16px 0"><div class="mh"><span>${new Date(sel+'T00:00').toLocaleDateString('en-US',{weekday:'short',day:'numeric',month:'long',year:'numeric'})}</span><button style="width:auto;padding:0 12px;font-size:13px;background:var(--p);color:#fff;border:0" data-a="addday">+ Add Task</button></div><div class="box" style="margin-top:0"><span class="bdg" style="background:rgba(127,119,221,.18);color:var(--p)">To-Do</span><span style="font-size:11px;color:var(--mu)">${dn} of ${l.length} done</span>${groups(l,sel)||'<div class="empty" style="padding:16px">No tasks. Tap Add Task to create one.</div>'}</div>`+ph('Habits','rgba(29,158,117,.18)','var(--gr)')+ph('Goals','rgba(186,117,23,.18)','#ba7517')+ph('Diary','rgba(212,83,126,.18)','#d4537e')}
-    app.innerHTML=`<div class="mh"><button data-a="pm">‹</button><span>${new Date(y,m,1).toLocaleDateString('en-US',{month:'long',year:'numeric'})}</span><button data-a="nm">›</button></div><div class="cal">${cells}</div><div class="lg"><span><i style="background:var(--p)"></i>To-Do</span><span><i style="background:var(--gr)"></i>Habits</span><span><i style="background:#ba7517"></i>Goals</span><span><i style="background:#d4537e"></i>Diary</span></div>`+det;
+    app.innerHTML=`<div class="hist"><div><div class="mh"><button data-a="pm">‹</button><span>${new Date(y,m,1).toLocaleDateString('en-US',{month:'long',year:'numeric'})}</span><button data-a="nm">›</button></div><div class="cal">${cells}</div><div class="lg"><span><i style="background:var(--p)"></i>To-Do</span><span><i style="background:var(--gr)"></i>Habits</span><span><i style="background:#ba7517"></i>Goals</span><span><i style="background:#d4537e"></i>Diary</span></div></div><div>`+det+'</div></div>';
   }else{
     hd.style.display='none';
     const t=TABS.find(x=>x[0]===tab);
@@ -160,8 +180,8 @@ function addTask(title,day){
   todos.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),title,done:false,closed:false,appr:null,created:dk(),createdAt:new Date().toISOString(),due:day,comp:null,clo:null});
   save();render();
 }
-function openMod(h){mc.innerHTML='<div class="hd"></div>'+h;mod.classList.add('o')}
-function closeMod(){mod.classList.remove('o')}
+function openMod(h){mc.innerHTML='<div class="hd"></div>'+h;mod.classList.add('o');document.body.classList.add('lock');document.getElementById('shell').inert=true;document.querySelector('nav').inert=true}
+function closeMod(){mod.classList.remove('o');document.body.classList.remove('lock');document.getElementById('shell').inert=false;document.querySelector('nav').inert=false}
 function editMod(t){
   const r=(l,v,ts)=>v?`<div class="ir"><span>${l}</span><span>${fmt(v)}${ts&&tm(ts)?', '+tm(ts):''}</span></div>`:'';
   openMod(`<h3>Edit task</h3><textarea id="et" rows="3">${esc(t.title)}</textarea>
@@ -247,12 +267,13 @@ function dataMod(){
   <textarea id="pt" rows="3" placeholder="Or paste backup JSON here…" style="margin-top:8px"></textarea>
   <label class="note" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="rp"> Replace all existing tasks (otherwise new tasks are merged in)</label>
   <div class="row" style="margin-top:10px"><button class="btn pp" data-a="imp">Import pasted backup</button></div></div>
-  <div class="sec2"><h4>Install app</h4>${isApp?'<div class="note">MyBook is installed on this device.</div>':dip?'<button class="btn pp" data-a="inst" style="width:100%;padding:12px">Install MyBook</button>':isiOS?'<div class="note">On iPhone or iPad: tap Share, then “Add to Home Screen”.</div>':'<div class="note">Open your browser menu and choose “Install app” or “Add to Home screen”. This works once MyBook is hosted over HTTPS, such as on GitHub Pages.</div>'}</div>
+  <div class="sec2 insec"><h4>Install app</h4>${isApp?'<div class="note">MyBook is installed on this device.</div>':dip?'<button class="btn pp" data-a="inst" style="width:100%;padding:12px">Install MyBook</button>':isiOS?'<div class="note">On iPhone or iPad: tap Share, then “Add to Home Screen”.</div>':'<div class="note">Open your browser menu and choose “Install app” or “Add to Home screen”. This works once MyBook is hosted over HTTPS, such as on GitHub Pages.</div>'}</div>
   <div class="note" id="dm" style="margin-top:12px;font-weight:600;color:var(--p)"></div>`);
 }
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMod()});
 let dip=null;
 const isiOS=/iphone|ipad|ipod/i.test(navigator.userAgent),isApp=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true;
-const showInst=v=>{const b=document.getElementById('ib');if(b)b.hidden=!v};
+const showInst=v=>{const b=document.getElementById('ib');if(b)b.hidden=!v||isApp};
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();dip=e;showInst(true)});
 window.addEventListener('appinstalled',()=>{dip=null;showInst(false)});
 function installApp(){if(!dip)return dataMod();dip.prompt();dip.userChoice.then(()=>{dip=null;showInst(false)})}
