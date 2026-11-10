@@ -110,6 +110,26 @@ main{max-width:980px;margin:0 auto;padding:24px 40px}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .chip{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:16px;padding:6px 12px;font-size:13px;cursor:pointer}
 @media (min-width:900px){.fab{bottom:28px;right:32px}}
+.seg{display:inline-flex;border:1px solid var(--bd);border-radius:12px;overflow:hidden}
+.seg button{border:0;background:var(--card);color:var(--mu);padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer}
+.seg button.a{background:var(--p);color:#fff}
+.hbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}
+.hbar .btn{padding:9px 12px;font-size:12px}
+.hc{margin-top:10px}.hn{font-weight:600;font-size:14px;margin-bottom:8px}
+.hb{width:100%;border:2px solid var(--p);background:none;color:var(--p);border-radius:12px;padding:11px;font-size:14px;font-weight:600;cursor:pointer}
+.hb.on{background:var(--p);color:#fff}
+.hin{display:flex;align-items:center;gap:8px}.hin .inp{flex:1;min-width:0}
+.hm{display:flex;align-items:center;gap:6px;margin-top:8px}.hm .inp{flex:1;min-width:0;padding:8px 10px}
+.hm .x:disabled{opacity:.3;cursor:default}
+.tw{overflow:auto;max-height:68vh;border:1px solid var(--bd);border-radius:14px;background:var(--card)}
+.ht{border-collapse:separate;border-spacing:0;font-size:12px;width:100%}
+.ht th,.ht td{border-bottom:1px solid var(--bd);padding:8px;min-width:84px;max-width:160px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:var(--card)}
+.ht th{position:sticky;top:0;z-index:2;white-space:normal;font-size:11px;background:var(--pl);color:var(--p)}
+.ht .sd{position:sticky;left:0;z-index:1;min-width:62px;text-align:left;font-weight:600}
+.ht th.sd{z-index:3}
+.ht tbody tr{cursor:pointer}.ht tr.we td{background:var(--bg)}.ht tr.tr td{background:var(--pl)}
+.ht tfoot td{position:sticky;bottom:0;z-index:2;font-weight:600;color:var(--p);background:var(--pl)}
+.ht tfoot .sd{z-index:3}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -128,7 +148,8 @@ const SEC={td:['TODAY','var(--p)'],cf:['CARRIED FORWARD','var(--or)'],on:['ONGOI
 let todos=[],tab='todo',month=new Date(),sel=null;
 try{todos=JSON.parse(localStorage.getItem('mybook.todos')||'[]')}catch(e){}
 let ds=[];try{ds=JSON.parse(localStorage.getItem('mybook.sessions')||'[]')}catch(e){}
-const save=()=>{try{localStorage.setItem('mybook.todos',JSON.stringify(todos));localStorage.setItem('mybook.sessions',JSON.stringify(ds))}catch(e){}};
+let hb={cols:[],data:{}},hv='day',hday=null,hm=new Date();try{const r=JSON.parse(localStorage.getItem('mybook.habits')||'null');if(r&&Array.isArray(r.cols))hb=r}catch(e){}
+const save=()=>{try{localStorage.setItem('mybook.todos',JSON.stringify(todos));localStorage.setItem('mybook.sessions',JSON.stringify(ds));localStorage.setItem('mybook.habits',JSON.stringify(hb))}catch(e){}};
 const dk=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const fmt=k=>{const p=k.split('-');return M[p[1]-1]+' '+(+p[2])};
 const tm=iso=>{const d=new Date(iso);return isNaN(d)?'':d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})};
@@ -175,15 +196,16 @@ function render(){
     const y=month.getFullYear(),m=month.getMonth(),first=new Date(y,m,1).getDay(),n=new Date(y,m+1,0).getDate();
     let cells='';for(const l of'SMTWTFS')cells+=`<span>${l}</span>`;
     for(let i=0;i<first;i++)cells+='<button class="e"></button>';
-    for(let i=1;i<=n;i++){const k=dk(new Date(y,m,i)),has=dayTasks(k).length||sessionsOn(k).length||dsOn(k).length;
+    for(let i=1;i<=n;i++){const k=dk(new Date(y,m,i)),has=dayTasks(k).length||sessionsOn(k).length||dsOn(k).length||!!hb.data[k];
       cells+=`<button class="${k===today?'t':''} ${k===sel?'s':''}" data-day="${k}">${i}${has?'<i></i>':''}</button>`}
     let det='<div class="empty">Tap a day to view or add tasks</div>';
     if(sel){const l=dayTasks(sel);
       const dn=l.filter(t=>t.done).length,ph=(n,bg,c)=>`<div class="box"><span class="bdg" style="background:${bg};color:${c}">${n}</span><span style="font-size:12px;color:var(--mu)">Coming soon…</span></div>`;
-      det=`<hr style="border:0;border-top:1px solid var(--bd);margin:16px 0"><div class="mh"><span>${new Date(sel+'T00:00').toLocaleDateString('en-US',{weekday:'short',day:'numeric',month:'long',year:'numeric'})}</span><button style="width:auto;padding:0 12px;font-size:13px;background:var(--p);color:#fff;border:0" data-a="addday">+ Add Task</button></div><div class="box" style="margin-top:0"><span class="bdg" style="background:rgba(127,119,221,.18);color:var(--p)">To-Do</span><span style="font-size:11px;color:var(--mu)">${dn} of ${l.length} done</span>${groups(l,sel)||'<div class="empty" style="padding:16px">No tasks. Tap Add Task to create one.</div>'}</div>`+ph('Habits','rgba(29,158,117,.18)','var(--gr)')+ph('Goals','rgba(186,117,23,.18)','#ba7517')+sessBox(sel)}
+      det=`<hr style="border:0;border-top:1px solid var(--bd);margin:16px 0"><div class="mh"><span>${new Date(sel+'T00:00').toLocaleDateString('en-US',{weekday:'short',day:'numeric',month:'long',year:'numeric'})}</span><button style="width:auto;padding:0 12px;font-size:13px;background:var(--p);color:#fff;border:0" data-a="addday">+ Add Task</button></div><div class="box" style="margin-top:0"><span class="bdg" style="background:rgba(127,119,221,.18);color:var(--p)">To-Do</span><span style="font-size:11px;color:var(--mu)">${dn} of ${l.length} done</span>${groups(l,sel)||'<div class="empty" style="padding:16px">No tasks. Tap Add Task to create one.</div>'}</div>`+habBox(sel)+ph('Goals','rgba(186,117,23,.18)','#ba7517')+sessBox(sel)}
     app.innerHTML=`<div class="hist"><div><div class="mh"><button data-a="pm">‹</button><span>${new Date(y,m,1).toLocaleDateString('en-US',{month:'long',year:'numeric'})}</span><button data-a="nm">›</button></div><div class="cal">${cells}</div><div class="lg"><span><i style="background:var(--p)"></i>To-Do</span><span><i style="background:var(--gr)"></i>Habits</span><span><i style="background:#ba7517"></i>Goals</span><span><i style="background:#d4537e"></i>Sessions</span></div></div><div>`+det+'</div></div>';
   }else{
     if(tab==='sess'){sessView();return}
+    if(tab==='habits'){habView();return}
     hd.style.display='none';
     const t=TABS.find(x=>x[0]===tab);
     app.innerHTML=`<div class="empty" style="padding-top:90px"><div style="font-size:48px">${t[1]}</div><h2>${t[2]}</h2>Coming soon…</div>`;
@@ -237,6 +259,15 @@ document.addEventListener('click',e=>{
   else if(a==='imp')importText();
   else if(a==='inst')installApp();
   else if(a==='ses'&&t){e.stopPropagation();toggleSession(t);const s=document.getElementById('ss');if(s&&mod.classList.contains('o'))s.outerHTML=sessHtml(t)}
+  else if(a==='hv'){hv=el.dataset.hv;if(hv==='month')hm=new Date(+hday.slice(0,4),+hday.slice(5,7)-1,1);render()}
+  else if(a==='hs'){const s=+el.dataset.hs;if(hv==='month')hm=new Date(hm.getFullYear(),hm.getMonth()+s,1);else{const d=new Date(hday+'T00:00');d.setDate(d.getDate()+s);hday=dk(d)}render()}
+  else if(a==='hdt'){hday=dk();render()}
+  else if(a==='hgo'){hday=el.dataset.hd;hv='day';tab='habits';render()}
+  else if(a==='hbt'){const c=el.dataset.hc,d=hb.data[hday]||{};habSet(hday,c,d[c]?'':1);render()}
+  else if(a==='hman')habMan();
+  else if(a==='hadd'){const n=document.getElementById('hnn').value.trim();if(!n)return;hb.cols.push({id:'h'+Date.now().toString(36)+Math.random().toString(36).slice(2,4),name:n,type:document.getElementById('hnt').value});save();habMan();render()}
+  else if(a==='hup'||a==='hdn'){const i=hb.cols.findIndex(c=>c.id===el.dataset.hc),j=a==='hup'?i-1:i+1;if(i>-1&&j>-1&&j<hb.cols.length){const q=hb.cols[i];hb.cols[i]=hb.cols[j];hb.cols[j]=q;save();habMan();render()}}
+  else if(a==='hdel'){if(el.dataset.arm){hb.cols=hb.cols.filter(c=>c.id!==el.dataset.hc);save();habMan();render()}else{el.dataset.arm='1';el.textContent='Sure?';setTimeout(()=>{el.dataset.arm='';el.textContent='🗑'},2500)}}
   else if(a==='dsn')dsNew();
   else if(a==='dsg')dsStart();
   else if(a==='dsc'){const i=document.getElementById('dn');if(i){i.value=el.dataset.n;i.focus()}}
@@ -256,7 +287,7 @@ function gcal(t){
   const u='https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(t.title)+'&dates='+d.split('-').join('')+'/'+dk(n).split('-').join('')+'&details='+encodeURIComponent('Added from MyBook');
   window.open(u,'_blank','noopener');
 }
-const payload=()=>JSON.stringify({app:'mybook',version:1,exported:new Date().toISOString(),todos,sessions:ds},null,2);
+const payload=()=>JSON.stringify({app:'mybook',version:1,exported:new Date().toISOString(),todos,sessions:ds,habits:hb},null,2);
 function msg(s){const m=document.getElementById('dm');if(m)m.textContent=s}
 function exportData(){
   try{const b=new Blob([payload()],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='mybook-backup-'+dk()+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);msg('Backup downloaded.')}catch(e){msg('Download failed. Use Copy backup instead.')}
@@ -279,6 +310,7 @@ function applyImport(txt){
   let n=list.length;
   if(rep)todos=list;else{const ids=new Set(todos.map(t=>t.id));n=0;list.forEach(t=>{if(!ids.has(t.id)){todos.push(t);n++}})}
   const dl=(j&&Array.isArray(j.sessions)?j.sessions:[]).map(cleanD).filter(Boolean);if(rep)ds=dl;else{const di=new Set(ds.map(x=>x.id));dl.forEach(x=>{if(!di.has(x.id))ds.push(x)})}
+  impHabits(j&&j.habits,rep);
   save();render();msg((rep?'Replaced all tasks with ':'Imported ')+n+' task'+(n===1?'':'s')+'.');
 }
 function importText(){applyImport(document.getElementById('pt').value)}
@@ -365,6 +397,76 @@ function sessView(){
    +(days.length?'<div class="sl" style="color:var(--mu);margin-top:24px">HISTORY</div>'+days.map(d=>`<div class="sub2" style="font-size:13px;color:var(--tx);margin-top:16px">${fmt(d)}, ${d.slice(0,4)} · ${dur(sumD(dsOn(d))+sumT(sessionsOn(d)))}</div>`+blocks(d)).join(''):'')
    +'<button class="fab" data-a="dsn" aria-label="New session">+</button>';
 }
+const HSEED=[['Wake up on decided time','bool'],['Time frame','range'],['Goals & dreams revisiting','bool'],['Meditation (chanting, breath focus)','bool'],['Warm-up','bool'],['Yoga','bool'],['Intense workout (30 min)','pct'],['Workout note','text']];
+const HTYPES={bool:'Checkbox',num:'Number',pct:'Percent',text:'Text',range:'Time range'};
+const fmtT=v=>{const p=String(v).split(':'),h=+p[0];return((h%12)||12)+':'+p[1]+(h<12?'am':'pm')};
+const cellTxt=(c,v)=>v==null||v===''?'':c.type==='bool'?'✓':c.type==='pct'?v+'%':c.type==='range'?(v&&v.a?fmtT(v.a):'')+(v&&v.b?'→'+fmtT(v.b):''):esc(String(v));
+const rdur=o=>{if(!o||!o.a||!o.b)return'';let m=(+o.b.slice(0,2))*60+(+o.b.slice(3))-((+o.a.slice(0,2))*60+(+o.a.slice(3)));if(m<0)m+=1440;return m>=60?Math.floor(m/60)+'h '+m%60+'m':m+'m'};
+function habSet(day,c,v){const d=hb.data[day]||(hb.data[day]={});if(v===''||v==null)delete d[c];else d[c]=v;if(!Object.keys(d).length)delete hb.data[day];save()}
+const updHead=()=>{if(tab==='habits'&&hv==='day'){const v=hb.data[hday]||{};cnt.textContent=hb.cols.filter(c=>v[c.id]!=null).length+' of '+hb.cols.length+' logged'}};
+function habInput(x,fin){
+  const c=x.dataset.hc,col=hb.cols.find(k=>k.id===c);if(!col)return;
+  if(col.type==='range'){const cur=Object.assign({},(hb.data[hday]||{})[c]);cur[x.dataset.k]=x.value;habSet(hday,c,cur.a||cur.b?cur:'');const s=document.getElementById('rd'+c);if(s)s.textContent=rdur(cur)}
+  else if(col.type==='num'||col.type==='pct'){if(fin&&col.type==='pct'&&x.value!=='')x.value=Math.min(100,Math.max(0,+x.value));habSet(hday,c,x.value===''?'':+x.value)}
+  else habSet(hday,c,x.value);
+  updHead();
+}
+function impHabits(h,rep){
+  if(!h||!Array.isArray(h.cols))return;
+  const cols=h.cols.filter(c=>c&&c.id&&typeof c.name==='string'&&HTYPES[c.type]).map(c=>({id:String(c.id),name:c.name,type:c.type}));
+  const data=h.data&&typeof h.data==='object'?h.data:{};
+  if(rep){hb={cols,data,seeded:true};return}
+  const ids=new Set(hb.cols.map(c=>c.id));cols.forEach(c=>{if(!ids.has(c.id))hb.cols.push(c)});
+  for(const d in data)hb.data[d]=Object.assign({},data[d],hb.data[d]||{});
+}
+function habCard(c,v){
+  let b;
+  if(c.type==='bool')b=`<button class="hb ${v?'on':''}" data-a="hbt" data-hc="${c.id}">${v?'✓ Done':'Mark done'}</button>`;
+  else if(c.type==='num'||c.type==='pct')b=`<div class="hin"><input type="number" inputmode="decimal" class="inp" ${c.type==='pct'?'min="0" max="100"':''} data-hc="${c.id}" value="${v==null?'':v}" placeholder="${c.type==='pct'?'0 to 100':'Enter a number'}">${c.type==='pct'?'<span>%</span>':''}</div>`;
+  else if(c.type==='range'){const o=v||{};b=`<div class="hin"><input type="time" class="inp" data-hc="${c.id}" data-k="a" value="${o.a||''}"><span>→</span><input type="time" class="inp" data-hc="${c.id}" data-k="b" value="${o.b||''}"></div><div class="note" id="rd${c.id}">${rdur(o)}</div>`}
+  else b=`<textarea class="inp" rows="2" data-hc="${c.id}" placeholder="Write a note…">${esc(String(v||''))}</textarea>`;
+  return `<div class="box hc"><div class="hn">${esc(c.name)}</div>${b}</div>`;
+}
+function habTable(){
+  const y=hm.getFullYear(),mo=hm.getMonth(),n=new Date(y,mo+1,0).getDate(),cols=hb.cols,today=dk();
+  let rows='';
+  for(let i=1;i<=n;i++){const k=dk(new Date(y,mo,i)),d=hb.data[k]||{},w=new Date(y,mo,i).getDay();
+    rows+=`<tr class="${k===today?'tr':''} ${w===0||w===6?'we':''}" data-a="hgo" data-hd="${k}"><td class="sd">${String(i).padStart(2,'0')} ${'SMTWTFS'[w]}</td>${cols.map(c=>`<td>${cellTxt(c,d[c.id])}</td>`).join('')}</tr>`}
+  const sum=c=>{const vs=[];for(let i=1;i<=n;i++){const v=(hb.data[dk(new Date(y,mo,i))]||{})[c.id];if(v!=null&&v!=='')vs.push(v)}
+    if(!vs.length)return'';
+    if(c.type==='bool')return vs.length+'/'+n;
+    if(c.type==='num'){const s=vs.reduce((a,b)=>a+(+b||0),0);return'Σ '+(s%1?s.toFixed(1):s)}
+    if(c.type==='pct')return Math.round(vs.reduce((a,b)=>a+(+b||0),0)/vs.length)+'% avg';
+    return vs.length+' logged'};
+  return `<div class="tw"><table class="ht"><thead><tr><th class="sd">Date</th>${cols.map(c=>`<th>${esc(c.name)}</th>`).join('')}</tr></thead><tbody>${rows}</tbody><tfoot><tr><td class="sd">Total</td>${cols.map(c=>`<td>${sum(c)}</td>`).join('')}</tr></tfoot></table></div>`;
+}
+function habView(){
+  const hd=document.querySelector('header'),app=document.getElementById('app'),cols=hb.cols;
+  hday=hday||dk();
+  if(!hb.seeded&&!cols.length){hb.seeded=true;HSEED.forEach((s,i)=>cols.push({id:'h'+i+Date.now().toString(36),name:s[0],type:s[1]}));save()}
+  hd.style.display='';sub.textContent='';ttl.textContent='Habits';bar.style.display='none';
+  const top=`<div class="hbar"><div class="seg"><button class="${hv==='day'?'a':''}" data-a="hv" data-hv="day">Day</button><button class="${hv==='month'?'a':''}" data-a="hv" data-hv="month">Month</button></div><button class="btn gc" data-a="hman">⚙ Manage</button></div>`;
+  const empty='<div class="empty">No habits yet. Tap Manage to add your first one.</div>';
+  if(hv==='month'){
+    cnt.textContent='Tap a day to edit it';
+    app.innerHTML=top+`<div class="mh"><button data-a="hs" data-hs="-1">‹</button><span>${hm.toLocaleDateString('en-US',{month:'long',year:'numeric'})}</span><button data-a="hs" data-hs="1">›</button></div>`+(cols.length?habTable():empty);
+  }else{
+    const v=hb.data[hday]||{};
+    app.innerHTML=top+`<div class="mh"><button data-a="hs" data-hs="-1">‹</button><span>${new Date(hday+'T00:00').toLocaleDateString('en-US',{weekday:'short',day:'numeric',month:'long',year:'numeric'})}</span><button data-a="hs" data-hs="1">›</button></div>`+(hday!==dk()?'<div style="text-align:center;margin-bottom:6px"><button class="btn gc" data-a="hdt">Back to today</button></div>':'')+(cols.length?cols.map(c=>habCard(c,v[c.id])).join(''):empty);
+    updHead();
+  }
+}
+function habMan(){
+  openMod(`<h3>Manage habits</h3>${hb.cols.map((c,i)=>`<div class="hm"><input class="inp" data-hn="${c.id}" value="${esc(c.name)}" maxlength="60"><span class="pill">${HTYPES[c.type]}</span><button class="x" data-a="hup" data-hc="${c.id}" ${i?'':'disabled'} aria-label="Move up">↑</button><button class="x" data-a="hdn" data-hc="${c.id}" ${i<hb.cols.length-1?'':'disabled'} aria-label="Move down">↓</button><button class="x" data-a="hdel" data-hc="${c.id}" aria-label="Delete habit">🗑</button></div>`).join('')||'<div class="note">No habits yet.</div>'}<div class="sec2"><h4>Add a habit</h4><input class="inp" id="hnn" placeholder="Name, for example Meditation" maxlength="60"><select class="inp" id="hnt" style="margin-top:8px">${Object.keys(HTYPES).map(k=>`<option value="${k}">${HTYPES[k]}</option>`).join('')}</select><div class="row"><button class="btn pp" data-a="hadd">Add habit</button></div></div>`);
+}
+function habBox(day){
+  const v=hb.data[day]||{},l=hb.cols.filter(c=>v[c.id]!=null&&v[c.id]!=='');
+  return `<div class="box" data-a="hgo" data-hd="${day}" style="cursor:pointer"><span class="bdg" style="background:rgba(29,158,117,.18);color:var(--gr)">Habits</span><span style="font-size:11px;color:var(--mu)">${l.length} of ${hb.cols.length} logged</span>${l.map(c=>`<div class="ir"><span>${esc(c.name)}</span><span>${cellTxt(c,v[c.id])}</span></div>`).join('')}</div>`;
+}
+document.addEventListener('input',e=>{const x=e.target;if(x.dataset&&x.dataset.hc&&x.tagName!=='BUTTON')habInput(x,false)});
+document.addEventListener('change',e=>{const x=e.target,d=x.dataset||{};
+  if(d.hn){const c=hb.cols.find(k=>k.id===d.hn);if(c&&x.value.trim()){c.name=x.value.trim();save();render()}}
+  else if(d.hc&&x.tagName!=='BUTTON')habInput(x,true)});
 setInterval(()=>{document.querySelectorAll('.live').forEach(el=>{el.textContent=clk(Date.now()-new Date(el.dataset.s))})},1000);
 const lpCancel=()=>{clearTimeout(lpT);lpT=null};
 document.addEventListener('pointerdown',e=>{
