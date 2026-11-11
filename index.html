@@ -141,6 +141,20 @@ main{max-width:980px;margin:0 auto;padding:24px 40px}
 .gst{font-weight:600}.gst.cf{color:var(--or)}.gst.ac{color:var(--gr)}.gst.dl{color:var(--p)}
 .grip{flex:none;align-self:center;border:0;background:none;color:var(--mu);font-size:18px;letter-spacing:-3px;line-height:1;cursor:grab;padding:6px 4px;touch-action:none;-webkit-user-select:none;user-select:none}
 .drag{position:relative;z-index:60;opacity:.94;box-shadow:0 10px 26px rgba(0,0,0,.28);transition:none!important}
+.df{position:relative;display:flex;align-items:center;width:100%;min-height:44px;border:1px solid var(--bd);border-radius:12px;background:var(--card);padding:0 14px;cursor:pointer}
+.df span{pointer-events:none;font-size:16px}.df span.ph{color:var(--mu)}
+.df input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0}
+.dc{position:absolute;right:8px;top:50%;transform:translateY(-50%);z-index:2;border:0;background:var(--cl);color:var(--mu);border-radius:50%;width:26px;height:26px;font-size:15px;cursor:pointer;padding:0}
+.ht{font-size:calc(12px*var(--z,1))}
+.ht th,.ht td{padding:calc(8px*var(--z,1)) calc(6px*var(--z,1));min-width:calc(84px*var(--z,1));max-width:calc(160px*var(--z,1))}
+.ht th{font-size:calc(11px*var(--z,1))}
+.ht .sd{min-width:calc(62px*var(--z,1))}
+.zm{display:flex;align-items:center;gap:6px}
+.zm button{border:1px solid var(--bd);background:var(--card);color:var(--p);border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer}
+.zm b{font-size:12px;min-width:38px;text-align:center}
+.gr{width:100%;height:auto;display:block;margin-top:6px}
+.gr text{fill:var(--mu);font-size:9px}.gr rect{cursor:pointer}.gr .bg{fill:var(--cl);cursor:default}
+.gr .b1{fill:var(--gr)}.gr .b2{fill:var(--p)}.gr .b3{fill:#ba7517}.gr .b4{fill:#d4537e}.gr .b5{fill:var(--bl)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -163,7 +177,9 @@ let hb={cols:[],data:{}},hv='day',hday=null,hm=new Date();try{const r=JSON.parse
 let gl=[],gv='active',gcur=null;try{const r=JSON.parse(localStorage.getItem('mybook.goals')||'[]');if(Array.isArray(r))gl=r}catch(e){}
 const save=()=>{try{localStorage.setItem('mybook.todos',JSON.stringify(todos));localStorage.setItem('mybook.sessions',JSON.stringify(ds));localStorage.setItem('mybook.habits',JSON.stringify(hb));localStorage.setItem('mybook.goals',JSON.stringify(gl))}catch(e){}};
 const dk=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-const fmt=k=>{const p=k.split('-');return M[p[1]-1]+' '+(+p[2])};
+const MF=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const fmt=k=>{const p=k.split('-');return(+p[2])+' '+MF[p[1]-1]+' '+p[0]};
+const fd=k=>{const p=k.split('-');return p[2]+'/'+p[1]+'/'+p[0]};
 const tm=iso=>{const d=new Date(iso);return isNaN(d)?'':d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})};
 const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const sec=(t,day)=>{const d=t.due||t.created;if(!t.appr&&d>day)return'up';if(d>day)return'on';if(d===day)return'td';return'cf'};
@@ -179,7 +195,7 @@ function card(t,s,rm,dn){
   const h=`<div class="${cls}" data-a="open" data-id="${t.id}">
   <button class="chk ${t.done?'on':''}" data-a="tog" data-id="${t.id}" ${dis?'disabled':''}>${t.done?'✓':''}</button>
   <div class="bd"><div class="tt ${t.done?'dn':''}">${esc(t.title)}</div>
-  <div class="mt">${due}${s==='cf'&&!cl?`<span>From ${fmt(t.created)}</span>`:''}${t.appr?`<span class="ok">Approved ${fmt(t.appr)}</span>`:''}${t.done&&t.comp?`<span class="fin">Done ${fmt(t.comp)}</span>`:''}${cl?'<span>Closed</span>':''}${sessMeta(t)}</div></div>
+  <div class="mt">${due}${s==='cf'&&!cl?`<span>From ${fmt(t.created)}</span>`:''}${t.appr?`<span class="ok">Approved ${fmt(t.appr)}</span>`:''}${t.done&&t.comp?`<span class="fin">Done ${fmt(t.comp)}</span>`:''}${cl?'<span>Closed '+(t.clo?fmt(t.clo):'')+'</span>':''}${!cl&&t.rec?'<span>Recovered '+fmt(t.rec)+'</span>':''}${sessMeta(t)}</div></div>
   ${s==='up'&&!cl?`<button class="btn" data-a="apr" data-id="${t.id}">Approve</button>`:''}
   ${cl?`<button class="btn rc" data-a="rec" data-id="${t.id}">Recover</button>`:''}${rm?`<button class="btn rc" data-a="hide" data-id="${t.id}">Remove</button>`:''}${cl?'':'<button class="grip" aria-label="Drag to reorder">⋮⋮</button>'}</div>`;
   return `<div class="dr" data-dr="t:${s}${dn?'d':''}" data-id="${t.id}">`+(cl?h:`<div class="sw">${h}</div>`)+'</div>';
@@ -202,12 +218,12 @@ function render(){
   if(tab==='todo'){
     hd.style.display='';
     const pend=todos.filter(t=>!t.closed&&!t.done&&['td','cf','on'].includes(sec(t,today))).length,dn=todos.filter(t=>t.done&&!t.closed&&t.comp===today).length,act={length:pend+dn};
-    sub.textContent=d.toLocaleDateString('en-US',{weekday:'short',day:'numeric',month:'long',year:'numeric'});
+    sub.textContent=d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'long',year:'numeric'});
     ttl.textContent='My To-Do';cnt.textContent=dn+' of '+act.length+' tasks done';
     bar.style.display='';bar.firstChild.style.width=(act.length?dn/act.length*100:0)+'%';
     app.innerHTML=(groups(todos,today,true)||'<div class="empty">No tasks yet. Add your first one below.</div>')+
      `<div class="add"><textarea id="ni" rows="1" placeholder="Add a task… (Enter for new line)"></textarea><button class="plus" data-a="add">+</button></div>`;
-  }else if(tab==='hist'){
+  }else if(tab==='hist'){if(!sel)sel=dk();
     hd.style.display='';sub.textContent='';ttl.textContent='History';cnt.textContent='Tap any day to view or add entries';bar.style.display='none';
     const y=month.getFullYear(),m=month.getMonth(),first=new Date(y,m,1).getDay(),n=new Date(y,m+1,0).getDate();
     let cells='';for(const l of'SMTWTFS')cells+=`<span>${l}</span>`;
@@ -217,8 +233,8 @@ function render(){
     let det='<div class="empty">Tap a day to view or add tasks</div>';
     if(sel){const l=dayTasks(sel);
       const dn=l.filter(t=>t.done).length,ph=(n,bg,c)=>`<div class="box"><span class="bdg" style="background:${bg};color:${c}">${n}</span><span style="font-size:12px;color:var(--mu)">Coming soon…</span></div>`;
-      det=`<hr style="border:0;border-top:1px solid var(--bd);margin:16px 0"><div class="mh"><span>${new Date(sel+'T00:00').toLocaleDateString('en-US',{weekday:'short',day:'numeric',month:'long',year:'numeric'})}</span><button style="width:auto;padding:0 12px;font-size:13px;background:var(--p);color:#fff;border:0" data-a="addday">+ Add Task</button></div><div class="box" style="margin-top:0"><span class="bdg" style="background:rgba(127,119,221,.18);color:var(--p)">To-Do</span><span style="font-size:11px;color:var(--mu)">${dn} of ${l.length} done</span>${groups(l,sel)||'<div class="empty" style="padding:16px">No tasks. Tap Add Task to create one.</div>'}</div>`+habBox(sel)+goalBox(sel)+sessBox(sel)}
-    app.innerHTML=`<div class="hist"><div><div class="mh"><button data-a="pm">‹</button><span>${new Date(y,m,1).toLocaleDateString('en-US',{month:'long',year:'numeric'})}</span><button data-a="nm">›</button></div><div class="cal">${cells}</div><div class="lg"><span><i style="background:var(--p)"></i>To-Do</span><span><i style="background:var(--gr)"></i>Habits</span><span><i style="background:#ba7517"></i>Goals</span><span><i style="background:#d4537e"></i>Sessions</span></div></div><div>`+det+'</div></div>';
+      det=`<hr style="border:0;border-top:1px solid var(--bd);margin:16px 0"><div class="mh"><span>${new Date(sel+'T00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'long',year:'numeric'})}</span><button style="width:auto;padding:0 12px;font-size:13px;background:var(--p);color:#fff;border:0" data-a="addday">+ Add Task</button></div><div class="box" style="margin-top:0"><span class="bdg" style="background:rgba(127,119,221,.18);color:var(--p)">To-Do</span><span style="font-size:11px;color:var(--mu)">${dn} of ${l.length} done</span>${groups(l,sel)||'<div class="empty" style="padding:16px">No tasks. Tap Add Task to create one.</div>'}</div>`+habBox(sel)+goalBox(sel)+sessBox(sel)}
+    app.innerHTML=`<div class="hist"><div><div class="mh"><button data-a="pm">‹</button><span>${new Date(y,m,1).toLocaleDateString('en-GB',{month:'long',year:'numeric'})}</span><button data-a="nm">›</button></div><div class="cal">${cells}</div><div class="lg"><span><i style="background:var(--p)"></i>To-Do</span><span><i style="background:var(--gr)"></i>Habits</span><span><i style="background:#ba7517"></i>Goals</span><span><i style="background:#d4537e"></i>Sessions</span></div></div><div>`+det+'</div></div>';
   }else{
     if(tab==='sess'){sessView();return}
     if(tab==='habits'){habView();return}
@@ -235,16 +251,8 @@ function addTask(title,day,cr){
   todos.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),title,done:false,closed:false,appr:null,created:cr||dk(),createdAt:cr&&cr!==dk()?null:new Date().toISOString(),due:day,comp:null,clo:null});
   save();render();
 }
-function openMod(h){mc.innerHTML='<div class="hd"></div>'+h;mod.classList.add('o');document.body.classList.add('lock');document.getElementById('shell').inert=true;document.querySelector('nav').inert=true}
-function closeMod(){mod.classList.remove('o');document.body.classList.remove('lock');document.getElementById('shell').inert=false;document.querySelector('nav').inert=false}
-function editMod(t){
-  const r=(l,v,ts)=>v?`<div class="ir"><span>${l}</span><span>${fmt(v)}${ts&&tm(ts)?', '+tm(ts):''}</span></div>`:'';
-  openMod(`<h3>Edit task</h3><textarea id="et" rows="3">${esc(t.title)}</textarea>
-  <div style="margin-top:12px">${r('Created',t.created,t.createdAt)}${r('Due',t.due)}${r('Approved',t.appr,t.apprAt)}${r('Completed',t.comp,t.compAt)}${r('Closed',t.clo,t.cloAt)}</div>
-  ${sessHtml(t)}<button class="btn gc" data-a="gcal" data-id="${t.id}" style="width:100%;margin-top:14px;padding:12px;font-size:13px">Add to Google Calendar</button>
-  <div class="row">${t.closed?`<button class="btn gy" data-a="rec" data-id="${t.id}">Recover</button>`:`<button class="btn gy" data-a="clo" data-id="${t.id}">Close task</button>`}<button class="btn pp" data-a="sv" data-id="${t.id}">Save</button></div>`);
-  setTimeout(()=>document.getElementById('et').focus(),50);
-}
+function openMod(h){mc.innerHTML='<div class="hd"></div>'+h;mod.classList.add('o');document.body.classList.add('lock');document.getElementById('shell').inert=true;document.querySelector('nav').inert=true;if(!mp){mp=true;try{history.pushState({m:1},'')}catch(e){mp=false}}}
+function closeMod(){const was=mod.classList.contains('o');mod.classList.remove('o');document.body.classList.remove('lock');document.getElementById('shell').inert=false;document.querySelector('nav').inert=false;if(mp&&was){mp=false;ign++;try{history.back()}catch(e){ign--}}}
 function addDayMod(){
   openMod(`<h3>Add task for ${fmt(sel)}</h3><textarea id="dt" rows="3" placeholder="Task title…"></textarea><div class="row"><button class="btn pp" data-a="sad">Add task</button></div>`);
   setTimeout(()=>document.getElementById('dt').focus(),50);
@@ -252,7 +260,7 @@ function addDayMod(){
 
 document.addEventListener('click',e=>{
   if(lpFired){lpFired=false;e.preventDefault();return}
-  const tb=e.target.closest('[data-tab]');if(tb){tab=tb.dataset.tab;render();return}
+  const tb=e.target.closest('[data-tab]');if(tb){setTab(tb.dataset.tab);return}
   const dy=e.target.closest('[data-day]');if(dy){sel=dy.dataset.day;render();return}
   if(e.target===mod){closeMod();return}
   if(e.target.closest('.due'))return;
@@ -261,9 +269,9 @@ document.addEventListener('click',e=>{
   if(a==='tog'&&t&&!t.closed){e.stopPropagation();t.done=!t.done;t.hid=false;t.comp=t.done?dk():null;t.compAt=t.done?new Date().toISOString():null;if(t.done)chime();save();render()}
   else if(a==='open'&&t)editMod(t);
   else if(a==='apr'&&t){e.stopPropagation();t.appr=dk();t.apprAt=new Date().toISOString();save();render()}
-  else if(a==='rec'&&t){e.stopPropagation();t.closed=false;t.clo=null;t.cloAt=null;save();closeMod();render()}
-  else if(a==='clo'&&t){t.closed=true;t.clo=dk();t.cloAt=new Date().toISOString();save();closeMod();render()}
-  else if(a==='sv'&&t){const v=document.getElementById('et').value.trim();if(v)t.title=v;else todos=todos.filter(x=>x!==t);save();closeMod();render()}
+  else if(a==='rec'&&t){e.stopPropagation();t.closed=false;t.rec=dk();t.recAt=new Date().toISOString();save();closeMod();render()}
+  else if(a==='clo'&&t){t.closed=true;t.clo=dk();t.cloAt=new Date().toISOString();t.rec=null;t.recAt=null;save();closeMod();render()}
+  else if(a==='sv'&&t){const v=document.getElementById('et').value.trim();if(!v)todos=todos.filter(x=>x!==t);else{t.title=v;tRead(t)}save();closeMod();render()}
   else if(a==='add'){const i=document.getElementById('ni');addTask(i.value,dk())}
   else if(a==='addday')addDayMod();
   else if(a==='sad'){addTask(document.getElementById('dt').value,sel,sel);closeMod()}
@@ -283,6 +291,9 @@ document.addEventListener('click',e=>{
   else if(a==='herase'){if(el.dataset.fc&&!el.dataset.arm){el.dataset.arm='1';el.textContent='Sure?';setTimeout(()=>{el.dataset.arm='';el.textContent='🗑'},2500);return}const id=el.dataset.hc;hb.cols=hb.cols.filter(x=>x.id!==id);for(const d in hb.data){delete hb.data[d][id];if(!Object.keys(hb.data[d]).length)delete hb.data[d]}save();habMan();render()}
   else if(a==='hreopen'){const c=hb.cols.find(x=>x.id===el.dataset.hc);if(c){c.closed=null;save();habMan();render()}}
   else if(a==='hup'||a==='hdn'){const act=hb.cols.filter(c=>!c.closed),i=act.findIndex(c=>c.id===el.dataset.hc),j=a==='hup'?i-1:i+1;if(i>-1&&j>-1&&j<act.length){const x=act[i],y=act[j],p=hb.cols.indexOf(x),q=hb.cols.indexOf(y);hb.cols[p]=y;hb.cols[q]=x;save();habMan();render()}}
+  else if(a==='hmv'){hmv=el.dataset.hmv;render()}
+  else if(a==='hz'){hz=Math.min(1.6,Math.max(.4,Math.round((hz+(+el.dataset.z)*.15)*100)/100));try{localStorage.setItem('mybook.hz',hz)}catch(e){}render()}
+  else if(a==='hfit')habFit();
   else if(a==='gv'){gv=el.dataset.gv;render()}
   else if(a==='gnew')goalNew(el.dataset.gd);
   else if(a==='gadd'){const n=document.getElementById('gn').value.trim();if(!n)return;gl.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),name:n,details:document.getElementById('gd').value.trim(),deadline:document.getElementById('gdl').value||null,created:document.getElementById('gcr').value||dk(),achieved:null,notes:'',archived:null,log:{}});save();closeMod();render();toast('Goal added')}
@@ -300,7 +311,7 @@ document.addEventListener('click',e=>{
   else if(a==='hv'){hv=el.dataset.hv;if(hv==='month')hm=new Date(+hday.slice(0,4),+hday.slice(5,7)-1,1);render()}
   else if(a==='hs'){const s=+el.dataset.hs;if(hv==='month')hm=new Date(hm.getFullYear(),hm.getMonth()+s,1);else{const d=new Date(hday+'T00:00');d.setDate(d.getDate()+s);hday=dk(d)}render()}
   else if(a==='hdt'){hday=dk();render()}
-  else if(a==='hgo'){hday=el.dataset.hd;hv='day';tab='habits';render()}
+  else if(a==='hgo'){hday=el.dataset.hd;hv='day';setTab('habits')}
   else if(a==='hbt'){const c=el.dataset.hc,d=hb.data[hday]||{};habSet(hday,c,d[c]?'':1);render()}
   else if(a==='hman')habMan();
   else if(a==='hadd'){const n=document.getElementById('hnn').value.trim();if(!n)return;hb.cols.push({id:'h'+Date.now().toString(36)+Math.random().toString(36).slice(2,4),name:n,type:document.getElementById('hnt').value});save();habMan();render()}
@@ -334,7 +345,7 @@ function copyData(){
 }
 function clean(r){
   if(!r||typeof r!=='object'||typeof r.title!=='string'||!okd(r.created))return null;
-  return{id:String(r.id||Date.now().toString(36)+Math.random().toString(36).slice(2,5)),title:r.title,done:!!r.done,hid:!!r.hid,closed:!!r.closed,appr:okd(r.appr),created:r.created,due:okd(r.due),comp:okd(r.comp),clo:okd(r.clo),createdAt:iso(r.createdAt),apprAt:iso(r.apprAt),compAt:iso(r.compAt),cloAt:iso(r.cloAt),sessions:(Array.isArray(r.sessions)?r.sessions:[]).map(x=>x&&iso(x.s)?{s:x.s,e:iso(x.e)}:null).filter(Boolean)};
+  return{id:String(r.id||Date.now().toString(36)+Math.random().toString(36).slice(2,5)),title:r.title,done:!!r.done,hid:!!r.hid,closed:!!r.closed,appr:okd(r.appr),created:r.created,due:okd(r.due),comp:okd(r.comp),clo:okd(r.clo),createdAt:iso(r.createdAt),apprAt:iso(r.apprAt),compAt:iso(r.compAt),cloAt:iso(r.cloAt),rec:okd(r.rec),recAt:iso(r.recAt),sessions:(Array.isArray(r.sessions)?r.sessions:[]).map(x=>x&&iso(x.s)?{s:x.s,e:iso(x.e)}:null).filter(Boolean)};
 }
 function applyImport(txt){
   let j;try{j=JSON.parse(txt)}catch(e){return msg('That is not valid JSON.')}
@@ -430,7 +441,7 @@ function sessView(){
   const blocks=day=>{const d=dsOn(day),t=sessionsOn(day);return(d.length?blk('Direct sessions',sumD(d),dRows(d)):'')+(t.length?blk('From tasks',sumT(t),sessRows(t)):'')};
   const days=[...new Set([...todos.flatMap(t=>(t.sessions||[]).map(x=>dk(new Date(x.s)))),...ds.map(x=>dk(new Date(x.s)))])].filter(d=>d!==today).sort().reverse();
   app.innerHTML=banner+'<div class="sl" style="color:#d4537e">TODAY</div>'+(blocks(today)||'<div class="empty" style="padding:20px">Nothing yet today. Tap + to start a session, or press and hold a task.</div>')
-   +(days.length?'<div class="sl" style="color:var(--mu);margin-top:24px">HISTORY</div>'+days.map(d=>`<div class="sub2" style="font-size:13px;color:var(--tx);margin-top:16px">${fmt(d)}, ${d.slice(0,4)} · ${dur(sumD(dsOn(d))+sumT(sessionsOn(d)))}</div>`+blocks(d)).join(''):'')
+   +(days.length?'<div class="sl" style="color:var(--mu);margin-top:24px">HISTORY</div>'+days.map(d=>`<div class="sub2" style="font-size:13px;color:var(--tx);margin-top:16px">${fmt(d)} · ${dur(sumD(dsOn(d))+sumT(sessionsOn(d)))}</div>`+blocks(d)).join(''):'')
    +'<button class="fab" data-a="dsn" aria-label="New session">+</button>';
 }
 const HSEED=[['Wake up on decided time','bool'],['Time frame','range'],['Goals & dreams revisiting','bool'],['Meditation (chanting, breath focus)','bool'],['Warm-up','bool'],['Yoga','bool'],['Intense workout (30 min)','pct'],['Workout note','text']];
@@ -474,7 +485,7 @@ function habTable(){
     if(c.type==='num'){const s=vs.reduce((a,b)=>a+(+b||0),0);return'Σ '+(s%1?s.toFixed(1):s)}
     if(c.type==='pct')return Math.round(vs.reduce((a,b)=>a+(+b||0),0)/vs.length)+'% avg';
     return vs.length+' logged'};
-  return `<div class="tw"><table class="ht"><thead><tr><th class="sd">Date</th>${cols.map(c=>`<th>${esc(c.name)}${c.closed?'<br><small>closed '+fmt(c.closed)+'</small>':''}</th>`).join('')}</tr></thead><tbody>${rows}</tbody><tfoot><tr><td class="sd">Total</td>${cols.map(c=>`<td>${sum(c)}</td>`).join('')}</tr></tfoot></table></div>`;
+  return `<div class="tw" style="--z:${hz};${hz<1?'max-height:none':''}"><table class="ht"><thead><tr><th class="sd">Date</th>${cols.map(c=>`<th>${esc(c.name)}${c.closed?'<br><small>closed '+fmt(c.closed)+'</small>':''}</th>`).join('')}</tr></thead><tbody>${rows}</tbody><tfoot><tr><td class="sd">Total</td>${cols.map(c=>`<td>${sum(c)}</td>`).join('')}</tr></tfoot></table></div>`;
 }
 function habView(){
   const hd=document.querySelector('header'),app=document.getElementById('app'),cols=hb.cols;
@@ -485,10 +496,10 @@ function habView(){
   const empty='<div class="empty">No habits yet. Tap Manage to add your first one.</div>';
   if(hv==='month'){
     cnt.textContent='Tap a day to edit it';
-    app.innerHTML=top+`<div class="mh"><button data-a="hs" data-hs="-1">‹</button><span>${hm.toLocaleDateString('en-US',{month:'long',year:'numeric'})}</span><button data-a="hs" data-hs="1">›</button></div>`+(cols.length?habTable():empty);
+    app.innerHTML=top+`<div class="mh"><button data-a="hs" data-hs="-1">‹</button><span>${hm.toLocaleDateString('en-GB',{month:'long',year:'numeric'})}</span><button data-a="hs" data-hs="1">›</button></div>`+modeBar()+(cols.length?(hmv==='graph'?habGraph():habTable()):empty);
   }else{
     const v=hb.data[hday]||{};
-    app.innerHTML=top+`<div class="mh"><button data-a="hs" data-hs="-1">‹</button><span>${new Date(hday+'T00:00').toLocaleDateString('en-US',{weekday:'short',day:'numeric',month:'long',year:'numeric'})}</span><button data-a="hs" data-hs="1">›</button></div>`+(hday!==dk()?'<div style="text-align:center;margin-bottom:6px"><button class="btn gc" data-a="hdt">Back to today</button></div>':'')+(cols.filter(c=>!c.closed||hday<=c.closed).length?cols.filter(c=>!c.closed||hday<=c.closed).map(c=>habCard(c,v[c.id])).join(''):empty);
+    app.innerHTML=top+`<div class="mh"><button data-a="hs" data-hs="-1">‹</button><span>${new Date(hday+'T00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'long',year:'numeric'})}</span><button data-a="hs" data-hs="1">›</button></div>`+(hday!==dk()?'<div style="text-align:center;margin-bottom:6px"><button class="btn gc" data-a="hdt">Back to today</button></div>':'')+(cols.filter(c=>!c.closed||hday<=c.closed).length?cols.filter(c=>!c.closed||hday<=c.closed).map(c=>habCard(c,v[c.id])).join(''):empty);
     updHead();
   }
 }
@@ -532,7 +543,7 @@ function goalView(){
   app.innerHTML=seg+(b||'<div class="empty">Nothing here yet. Tap + to set a goal.</div>')+'<button class="fab" data-a="gnew" aria-label="New goal" style="background:#ba7517">+</button>';
 }
 function goalNew(day){
-  openMod(`<h3>New goal</h3><label class="fl">Goal name</label><input class="inp" id="gn" placeholder="What do you want to achieve?" maxlength="120"><label class="fl">Details: how will you feel when you achieve it?</label><textarea id="gd" rows="3" placeholder="Why it matters, how it will feel…"></textarea><div class="two"><div><label class="fl">Deadline</label><input type="date" class="inp" id="gdl"></div><div><label class="fl">Created on</label><input type="date" class="inp" id="gcr" value="${day||dk()}"></div></div><div class="row"><button class="btn pp" data-a="gadd">Add goal</button></div>`);
+  openMod(`<h3>New goal</h3><label class="fl">Goal name</label><input class="inp" id="gn" placeholder="What do you want to achieve?" maxlength="120"><label class="fl">Details: how will you feel when you achieve it?</label><textarea id="gd" rows="3" placeholder="Why it matters, how it will feel…"></textarea><div class="two"><div><label class="fl">Deadline</label><input type="date" class="inp" id="gdl" data-clr="1"></div><div><label class="fl">Created on</label><input type="date" class="inp" id="gcr" value="${day||dk()}"></div></div><div class="row"><button class="btn pp" data-a="gadd">Add goal</button></div>`);
   setTimeout(()=>document.getElementById('gn').focus(),50);
 }
 function gRead(g){
@@ -543,15 +554,16 @@ function gRead(g){
   if(v('gnt')!==null)g.notes=v('gnt').trim();
   if(v('gad')!==null&&g.achieved)g.achieved=v('gad')||g.achieved;
   if(v('gar')!==null&&g.archived)g.archived=v('gar')||g.archived;
+  if(v('gcr'))g.created=v('gcr');
 }
 function gLogHtml(g,day){
   const lg=g.log||{},keys=Object.keys(lg).sort().reverse();
-  return `<div class="sec2" id="glg"><h4>What did you do to reach it?</h4><input type="date" class="inp" id="gld" value="${day}"><textarea id="glt" rows="3" placeholder="What did you do on this day toward the goal?" style="margin-top:8px">${esc(lg[day]||'')}</textarea><button class="btn pp" data-a="gls" data-id="${g.id}" style="width:100%;margin-top:8px;padding:11px">Save entry</button>${keys.map(d=>`<div class="gle"><div class="gh"><b>${fmt(d)}, ${d.slice(0,4)}</b><button class="x" data-a="gldel" data-id="${g.id}" data-d="${d}" aria-label="Delete entry">×</button></div><div class="gt" data-a="gle" data-id="${g.id}" data-d="${d}">${esc(lg[d])}</div></div>`).join('')}</div>`;
+  return `<div class="sec2" id="glg"><h4>What did you do to reach it?</h4><input type="date" class="inp" id="gld" value="${day}"><textarea id="glt" rows="3" placeholder="What did you do on this day toward the goal?" style="margin-top:8px">${esc(lg[day]||'')}</textarea><button class="btn pp" data-a="gls" data-id="${g.id}" style="width:100%;margin-top:8px;padding:11px">Save entry</button>${keys.map(d=>`<div class="gle"><div class="gh"><b>${fmt(d)}</b><button class="x" data-a="gldel" data-id="${g.id}" data-d="${d}" aria-label="Delete entry">×</button></div><div class="gt" data-a="gle" data-id="${g.id}" data-d="${d}">${esc(lg[d])}</div></div>`).join('')}</div>`;
 }
 function goalMod(g,focus,day){
   gcur=g.id;day=day||dk();
   const f=(l,h)=>`<label class="fl">${l}</label>${h}`;
-  openMod(`<h3>${g.achieved?'🏆 ':''}Goal</h3>`+f('Goal name',`<input class="inp" id="gn" value="${esc(g.name)}" maxlength="120">`)+f('Details: how will you feel when you achieve it?',`<textarea id="gd" rows="3">${esc(g.details||'')}</textarea>`)+`<div class="two"><div>${f('Deadline',`<input type="date" class="inp" id="gdl" value="${g.deadline||''}">`)}</div>${g.achieved?`<div>${f('Achievement date',`<input type="date" class="inp" id="gad" value="${g.achieved}">`)}</div>`:''}</div>`+(g.archived?f('Archived on',`<input type="date" class="inp" id="gar" value="${g.archived}">`):'')+f('Notes: how did you reach there?',`<textarea id="gnt" rows="3" placeholder="What worked, what you learned…">${esc(g.notes||'')}</textarea>`)+`<div class="ir"><span>Created</span><span>${fmt(g.created)}, ${g.created.slice(0,4)}</span></div>`+gLogHtml(g,day)+`<div class="row" style="flex-wrap:wrap"><button class="btn gy" data-a="gach2" data-id="${g.id}">${g.achieved?'Reopen goal':'Mark achieved'}</button><button class="btn gy" data-a="${g.archived?'gunarc':'garc'}" data-id="${g.id}">${g.archived?'Restore':'Archive'}</button></div><div class="row"><button class="btn gy" data-a="gdel" data-id="${g.id}">Delete</button><button class="btn pp" data-a="gsv" data-id="${g.id}">Save</button></div>`);
+  openMod(`<h3>${g.achieved?'🏆 ':''}Goal</h3>`+f('Goal name',`<input class="inp" id="gn" value="${esc(g.name)}" maxlength="120">`)+f('Details: how will you feel when you achieve it?',`<textarea id="gd" rows="3">${esc(g.details||'')}</textarea>`)+`<div class="two"><div>${f('Deadline',`<input type="date" class="inp" id="gdl" data-clr="1" value="${g.deadline||''}">`)}</div>${g.achieved?`<div>${f('Achievement date',`<input type="date" class="inp" id="gad" value="${g.achieved}">`)}</div>`:''}</div>`+(g.archived?f('Archived on',`<input type="date" class="inp" id="gar" value="${g.archived}">`):'')+f('Notes: how did you reach there?',`<textarea id="gnt" rows="3" placeholder="What worked, what you learned…">${esc(g.notes||'')}</textarea>`)+f('Created',`<input type="date" class="inp" id="gcr" value="${g.created}">`)+gLogHtml(g,day)+`<div class="row" style="flex-wrap:wrap"><button class="btn gy" data-a="gach2" data-id="${g.id}">${g.achieved?'Reopen goal':'Mark achieved'}</button><button class="btn gy" data-a="${g.archived?'gunarc':'garc'}" data-id="${g.id}">${g.archived?'Restore':'Archive'}</button></div><div class="row"><button class="btn gy" data-a="gdel" data-id="${g.id}">Delete</button><button class="btn pp" data-a="gsv" data-id="${g.id}">Save</button></div>`);
   if(focus){const t=document.getElementById(focus==='notes'?'gnt':'glt');setTimeout(()=>{t.focus();t.scrollIntoView({block:'center'})},60)}
 }
 function goalBox(day){
@@ -614,6 +626,67 @@ let hsx=0,hsy=0,hsOn=false;
 const shiftHab=s=>{if(hv==='month')hm=new Date(hm.getFullYear(),hm.getMonth()+s,1);else{const d=new Date(hday+'T00:00');d.setDate(d.getDate()+s);hday=dk(d)}render()};
 document.addEventListener('touchstart',e=>{hsOn=tab==='habits'&&!mod.classList.contains('o')&&!e.target.closest('.tw,input,textarea,select,.grip,button');if(hsOn){hsx=e.touches[0].clientX;hsy=e.touches[0].clientY}},{passive:true});
 document.addEventListener('touchend',e=>{if(!hsOn)return;hsOn=false;const dx=e.changedTouches[0].clientX-hsx,dy=e.changedTouches[0].clientY-hsy;if(Math.abs(dx)>70&&Math.abs(dx)>Math.abs(dy)*1.6)shiftHab(dx<0?1:-1)});
+let mp=false,ign=0,hmv='table',hz=1;
+try{hz=+localStorage.getItem('mybook.hz')||1}catch(e){}
+function shut(){mod.classList.remove('o');document.body.classList.remove('lock');document.getElementById('shell').inert=false;document.querySelector('nav').inert=false}
+function setTab(t){if(t!==tab){tab=t;try{history.pushState({t},'')}catch(e){}}render()}
+window.addEventListener('popstate',e=>{
+  if(ign>0){ign--;return}
+  if(mod.classList.contains('o')){mp=false;shut();return}
+  const t=(e.state&&e.state.t)||'todo';if(t!==tab){tab=t;render()}
+});
+function skin(root){root.querySelectorAll('input[type=date]').forEach(i=>{
+  if(i.dataset.sk)return;i.dataset.sk='1';
+  const w=document.createElement('label'),s=document.createElement('span');w.className='df';
+  i.parentNode.insertBefore(w,i);w.appendChild(s);w.appendChild(i);
+  let b=null;
+  const u=()=>{s.textContent=i.value?fd(i.value):'dd/mm/yyyy';s.className=i.value?'':'ph';if(b)b.style.display=i.value?'':'none'};
+  if(i.dataset.clr){b=document.createElement('button');b.type='button';b.className='dc';b.textContent='×';b.setAttribute('aria-label','Clear date');w.appendChild(b);b.addEventListener('click',ev=>{ev.preventDefault();ev.stopPropagation();i.value='';u();i.dispatchEvent(new Event('change',{bubbles:true}))})}
+  u();i.addEventListener('input',u);i.addEventListener('change',u);
+  i.addEventListener('click',()=>{try{i.showPicker()}catch(_){}});
+})}
+new MutationObserver(()=>skin(mc)).observe(mc,{childList:true,subtree:true});
+const mvAt=(iso,day)=>{const d=new Date(iso),p=day.split('-');d.setFullYear(+p[0],p[1]-1,+p[2]);return d.toISOString()};
+function tRead(t){
+  const ed=(f,a,id,clr)=>{const e=document.getElementById(id);if(!e)return;const v=e.value;
+    if(!v){if(clr){t[f]=null;if(a)t[a]=null}return}
+    if(v!==t[f]){if(a)t[a]=t[a]?mvAt(t[a],v):null;t[f]=v}};
+  ed('created','createdAt','ec');ed('due',null,'ed',1);ed('appr','apprAt','ea',1);ed('comp','compAt','ecm');ed('clo','cloAt','ecl');ed('rec','recAt','erc');
+}
+function editMod(t){
+  const f=(l,id,v,at,clr)=>`<div><label class="fl">${l}</label><input type="date" class="inp" id="${id}" value="${v||''}"${clr?' data-clr="1"':''}>${at&&tm(at)?`<div class="note">${tm(at)}</div>`:''}</div>`;
+  openMod(`<h3>Edit task</h3><textarea id="et" rows="3">${esc(t.title)}</textarea><div class="two">${f('Created','ec',t.created,t.createdAt)}${f('Due','ed',t.due,null,1)}${t.appr?f('Approved','ea',t.appr,t.apprAt,1):''}${t.done&&t.comp?f('Completed','ecm',t.comp,t.compAt):''}${t.clo?f('Closed','ecl',t.clo,t.cloAt):''}${t.rec?f('Recovered','erc',t.rec,t.recAt):''}</div>${sessHtml(t)}<button class="btn gc" data-a="gcal" data-id="${t.id}" style="width:100%;margin-top:14px;padding:12px;font-size:13px">Add to Google Calendar</button><div class="row">${t.closed?`<button class="btn gy" data-a="rec" data-id="${t.id}">Recover</button>`:`<button class="btn gy" data-a="clo" data-id="${t.id}">Close task</button>`}<button class="btn pp" data-a="sv" data-id="${t.id}">Save</button></div>`);
+  setTimeout(()=>document.getElementById('et').focus(),50);
+}
+function modeBar(){
+  return `<div class="hbar"><div class="seg"><button class="${hmv==='table'?'a':''}" data-a="hmv" data-hmv="table">Table</button><button class="${hmv==='graph'?'a':''}" data-a="hmv" data-hmv="graph">Graph</button></div>${hmv==='table'?`<div class="zm"><button data-a="hz" data-z="-1" aria-label="Zoom out">−</button><b>${Math.round(hz*100)}%</b><button data-a="hz" data-z="1" aria-label="Zoom in">+</button><button data-a="hfit">Fit month</button></div>`:''}</div>`;
+}
+function habGraph(){
+  const y=hm.getFullYear(),mo=hm.getMonth(),n=new Date(y,mo+1,0).getDate(),ym=y*12+mo;
+  const cols=hb.cols.filter(c=>!c.closed||ym<=(+c.closed.slice(0,4))*12+(+c.closed.slice(5,7)-1));
+  const keys=[];for(let i=1;i<=n;i++)keys.push(dk(new Date(y,mo,i)));
+  const mins=o=>{if(!o||!o.a||!o.b)return null;let m=(+o.b.slice(0,2))*60+(+o.b.slice(3))-((+o.a.slice(0,2))*60+(+o.a.slice(3)));if(m<0)m+=1440;return m};
+  const cls={bool:'b1',pct:'b2',num:'b3',range:'b4',text:'b5'};
+  return cols.map(c=>{
+    const vs=keys.map(k=>{const v=(hb.data[k]||{})[c.id];if(v==null||v==='')return null;return c.type==='range'?mins(v):c.type==='bool'||c.type==='text'?1:(+v||0)});
+    const got=vs.filter(v=>v!=null),flag=c.type==='bool'||c.type==='text',mx=c.type==='pct'?100:Math.max(1,...got),H=flag?26:64,W=n*16;
+    let sm='';
+    if(c.type==='bool')sm=got.length+'/'+n+' days';
+    else if(c.type==='text')sm=got.length+' notes';
+    else if(got.length){const s=got.reduce((a,b)=>a+b,0);sm=c.type==='num'?'Total '+(s%1?s.toFixed(1):s):c.type==='pct'?'Avg '+Math.round(s/got.length)+'%':'Avg '+(Math.round(s/got.length/6)/10)+' h'}
+    const bars=vs.map((v,i)=>{const x=i*16+2,full=flag?H-4:Math.max(3,v/mx*(H-8));return `<rect class="bg" x="${x}" y="0" width="12" height="${H}" rx="3"/>`+(v==null?'':`<rect class="${cls[c.type]}" data-a="hgo" data-hd="${keys[i]}" x="${x}" y="${H-full-2}" width="12" height="${full}" rx="3"/>`)}).join('');
+    const ticks=[1,8,15,22,29].filter(d=>d<=n).map(d=>`<text x="${(d-1)*16+8}" y="${H+11}" text-anchor="middle">${d}</text>`).join('');
+    return `<div class="box hc"><div class="hn" style="display:flex;justify-content:space-between"><span>${esc(c.name)}</span><span style="font-size:12px;color:var(--mu);font-weight:500">${sm}</span></div><svg class="gr" viewBox="0 0 ${W} ${H+14}" role="img" aria-label="${esc(c.name)} chart">${bars}${ticks}</svg></div>`;
+  }).join('');
+}
+function habFit(){
+  hz=1;render();
+  const tw=document.querySelector('.tw'),t=document.querySelector('.ht');if(!tw||!t)return;
+  const w=tw.clientWidth,hh=innerHeight-tw.getBoundingClientRect().top-90;
+  hz=Math.max(.4,Math.min(1,Math.floor(Math.min(w/t.offsetWidth,hh/t.offsetHeight)*20)/20));
+  try{localStorage.setItem('mybook.hz',hz)}catch(e){}
+  render();
+}
 setInterval(()=>{document.querySelectorAll('.live').forEach(el=>{el.textContent=clk(Date.now()-new Date(el.dataset.s))})},1000);
 const lpCancel=()=>{clearTimeout(lpT);lpT=null};
 document.addEventListener('pointerdown',e=>{
@@ -638,8 +711,9 @@ let sx=0,sc=null;
 document.addEventListener('touchstart',e=>{sc=e.target.closest('.grip')?null:e.target.closest('.card:not(.cl)');sx=e.touches[0].clientX},{passive:true});
 document.addEventListener('touchmove',e=>{if(!sc)return;const dx=e.touches[0].clientX-sx;if(dx<0)sc.style.transform='translateX('+dx+'px)'},{passive:true});
 document.addEventListener('touchend',e=>{if(!sc)return;const dx=e.changedTouches[0].clientX-sx,t=find(sc.dataset.id);sc.style.transform='';
-  if(dx<-90&&t){if(t.title.trim()===''){todos=todos.filter(x=>x!==t)}else{t.closed=true;t.clo=dk();t.cloAt=new Date().toISOString()}save();render()}sc=null});
+  if(dx<-90&&t){if(t.title.trim()===''){todos=todos.filter(x=>x!==t)}else{t.closed=true;t.clo=dk();t.cloAt=new Date().toISOString();t.rec=null;t.recAt=null}save();render()}sc=null});
 render();
+try{history.replaceState({t:'todo'},'')}catch(e){}
 try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 try{if('serviceWorker' in navigator&&location.protocol.indexOf('http')===0)navigator.serviceWorker.register('sw.js').catch(()=>{})}catch(e){}
 </script>
