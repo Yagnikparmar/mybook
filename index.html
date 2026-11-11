@@ -155,6 +155,24 @@ main{max-width:980px;margin:0 auto;padding:24px 40px}
 .gr{width:100%;height:auto;display:block;margin-top:6px}
 .gr text{fill:var(--mu);font-size:9px}.gr rect{cursor:pointer}.gr .bg{fill:var(--cl);cursor:default}
 .gr .b1{fill:var(--gr)}.gr .b2{fill:var(--p)}.gr .b3{fill:#ba7517}.gr .b4{fill:#d4537e}.gr .b5{fill:var(--bl)}
+.ig{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.it{position:relative}.it img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;cursor:pointer;display:block}
+.it .x{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.55);color:#fff;border-radius:50%;width:22px;height:22px;padding:0;font-size:13px}
+.gth{width:46px;height:46px;border-radius:10px;object-fit:cover;flex:none}
+.lb{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.lb img{max-width:96vw;max-height:92vh;border-radius:8px}
+.qs{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;max-width:640px;margin:0 auto}
+.qs::-webkit-scrollbar{display:none}
+.qsl{flex:0 0 100%;scroll-snap-align:center;padding:0 2px;box-sizing:border-box}
+.qc{min-height:300px;border-radius:22px;padding:26px 22px 20px;color:#fff;display:flex;flex-direction:column;justify-content:center;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.18)}
+.qm{font-size:64px;line-height:.6;opacity:.5;font-family:Georgia,serif}
+.qt{font-size:21px;line-height:1.45;font-family:Georgia,"Times New Roman",serif;margin:8px 0 16px;white-space:pre-wrap;word-break:break-word}
+.qa{font-weight:600;font-size:15px}
+.qd{font-size:12px;opacity:.8;margin-top:14px}
+.qb{display:flex;gap:8px;justify-content:center;margin-top:12px}
+.qn{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:10px;font-size:13px;color:var(--mu)}
+.qn .x{font-size:24px}
+.qt2{font-family:Georgia,"Times New Roman",serif;font-size:15px;white-space:pre-wrap;word-break:break-word}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -175,7 +193,10 @@ try{todos=JSON.parse(localStorage.getItem('mybook.todos')||'[]')}catch(e){}
 let ds=[];try{ds=JSON.parse(localStorage.getItem('mybook.sessions')||'[]')}catch(e){}
 let hb={cols:[],data:{}},hv='day',hday=null,hm=new Date();try{const r=JSON.parse(localStorage.getItem('mybook.habits')||'null');if(r&&Array.isArray(r.cols))hb=r}catch(e){}
 let gl=[],gv='active',gcur=null;try{const r=JSON.parse(localStorage.getItem('mybook.goals')||'[]');if(Array.isArray(r))gl=r}catch(e){}
-const save=()=>{try{localStorage.setItem('mybook.todos',JSON.stringify(todos));localStorage.setItem('mybook.sessions',JSON.stringify(ds));localStorage.setItem('mybook.habits',JSON.stringify(hb));localStorage.setItem('mybook.goals',JSON.stringify(gl))}catch(e){}};
+let ql=[],qv='swipe',qi=0,im={};
+try{const r=JSON.parse(localStorage.getItem('mybook.quotes')||'[]');if(Array.isArray(r))ql=r}catch(e){}
+try{const r=JSON.parse(localStorage.getItem('mybook.img')||'{}');if(r&&typeof r==='object')im=r}catch(e){}
+const save=()=>{try{localStorage.setItem('mybook.todos',JSON.stringify(todos));localStorage.setItem('mybook.sessions',JSON.stringify(ds));localStorage.setItem('mybook.habits',JSON.stringify(hb));localStorage.setItem('mybook.goals',JSON.stringify(gl));localStorage.setItem('mybook.quotes',JSON.stringify(ql))}catch(e){}};
 const dk=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const MF=['January','February','March','April','May','June','July','August','September','October','November','December'];
 const fmt=k=>{const p=k.split('-');return(+p[2])+' '+MF[p[1]-1]+' '+p[0]};
@@ -239,6 +260,7 @@ function render(){
     if(tab==='sess'){sessView();return}
     if(tab==='habits'){habView();return}
     if(tab==='goals'){goalView();return}
+    if(tab==='quotes'){quoteView();return}
     hd.style.display='none';
     const t=TABS.find(x=>x[0]===tab);
     app.innerHTML=`<div class="empty" style="padding-top:90px"><div style="font-size:48px">${t[1]}</div><h2>${t[2]}</h2>Coming soon…</div>`;
@@ -291,6 +313,18 @@ document.addEventListener('click',e=>{
   else if(a==='herase'){if(el.dataset.fc&&!el.dataset.arm){el.dataset.arm='1';el.textContent='Sure?';setTimeout(()=>{el.dataset.arm='';el.textContent='🗑'},2500);return}const id=el.dataset.hc;hb.cols=hb.cols.filter(x=>x.id!==id);for(const d in hb.data){delete hb.data[d][id];if(!Object.keys(hb.data[d]).length)delete hb.data[d]}save();habMan();render()}
   else if(a==='hreopen'){const c=hb.cols.find(x=>x.id===el.dataset.hc);if(c){c.closed=null;save();habMan();render()}}
   else if(a==='hup'||a==='hdn'){const act=hb.cols.filter(c=>!c.closed),i=act.findIndex(c=>c.id===el.dataset.hc),j=a==='hup'?i-1:i+1;if(i>-1&&j>-1&&j<act.length){const x=act[i],y=act[j],p=hb.cols.indexOf(x),q=hb.cols.indexOf(y);hb.cols[p]=y;hb.cols[q]=x;save();habMan();render()}}
+  else if(a==='qv'){qv=el.dataset.qv;render()}
+  else if(a==='qnew')qNew();
+  else if(a==='qadd'){const x=document.getElementById('qx').value.trim();if(!x)return;ql.unshift({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),text:x,author:document.getElementById('qau').value.trim(),created:document.getElementById('qcr').value||dk(),createdAt:new Date().toISOString(),archived:null});qi=0;qv='swipe';save();closeMod();render();toast('Quote saved')}
+  else if(a==='qopen'){const q=ql.find(x=>x.id===el.dataset.id);if(q)qMod(q)}
+  else if(a==='qsv'){const q=ql.find(x=>x.id===el.dataset.id);if(q){const x=document.getElementById('qx').value.trim();if(x)q.text=x;q.author=document.getElementById('qau').value.trim();const c=document.getElementById('qcr').value;if(c)q.created=c;const r=document.getElementById('qar');if(r&&r.value)q.archived=r.value;save();closeMod();render()}}
+  else if(a==='qarc'){const q=ql.find(x=>x.id===el.dataset.id);if(q){q.archived=dk();save();closeMod();render();toast('Quote archived')}}
+  else if(a==='qres'){const q=ql.find(x=>x.id===el.dataset.id);if(q){q.archived=null;save();closeMod();render()}}
+  else if(a==='qdel'){const q=ql.find(x=>x.id===el.dataset.id);if(!q)return;if(el.dataset.arm){ql=ql.filter(x=>x!==q);save();closeMod();render()}else{const t0=el.textContent;el.dataset.arm='1';el.textContent='Sure?';setTimeout(()=>{el.dataset.arm='';el.textContent=t0},2500)}}
+  else if(a==='qprev'||a==='qnext'){const s=document.getElementById('qs');if(s)s.scrollBy({left:(a==='qnext'?1:-1)*s.clientWidth,behavior:'smooth'})}
+  else if(a==='gimgadd'){document.getElementById('gimg').click()}
+  else if(a==='gimgv'){lightbox(im[el.dataset.i])}
+  else if(a==='gimgd'){const g=gl.find(x=>x.id===el.dataset.id);if(g){g.imgs=(g.imgs||[]).filter(x=>x!==el.dataset.i);delete im[el.dataset.i];saveImgs();save();const s=document.getElementById('gim');if(s)s.outerHTML=gImgHtml(g);render()}}
   else if(a==='hmv'){hmv=el.dataset.hmv;render()}
   else if(a==='hz'){hz=Math.min(1.6,Math.max(.4,Math.round((hz+(+el.dataset.z)*.15)*100)/100));try{localStorage.setItem('mybook.hz',hz)}catch(e){}render()}
   else if(a==='hfit')habFit();
@@ -304,7 +338,7 @@ document.addEventListener('click',e=>{
   else if(a==='garc'){const g=gl.find(x=>x.id===el.dataset.id);if(g){gRead(g);g.archived=dk();save();closeMod();render();toast('Goal archived')}}
   else if(a==='gunarc'){const g=gl.find(x=>x.id===el.dataset.id);if(g){g.archived=null;save();closeMod();render()}}
   else if(a==='gsv'){const g=gl.find(x=>x.id===el.dataset.id);if(g){gRead(g);save();closeMod();render()}}
-  else if(a==='gdel'){const g=gl.find(x=>x.id===el.dataset.id);if(!g)return;if(el.dataset.arm){gl=gl.filter(x=>x!==g);save();closeMod();render()}else{el.dataset.arm='1';el.textContent='Sure?';setTimeout(()=>{el.dataset.arm='';el.textContent='Delete'},2500)}}
+  else if(a==='gdel'){const g=gl.find(x=>x.id===el.dataset.id);if(!g)return;if(el.dataset.arm){(g.imgs||[]).forEach(i=>delete im[i]);saveImgs();gl=gl.filter(x=>x!==g);save();closeMod();render()}else{el.dataset.arm='1';el.textContent='Sure?';setTimeout(()=>{el.dataset.arm='';el.textContent='Delete'},2500)}}
   else if(a==='gls'){const g=gl.find(x=>x.id===el.dataset.id);if(g){const d=document.getElementById('gld').value||dk(),v=document.getElementById('glt').value.trim();g.log=g.log||{};if(v)g.log[d]=v;else delete g.log[d];save();render();const s=document.getElementById('glg');if(s)s.outerHTML=gLogHtml(g,d);toast(v?'Entry saved':'Entry removed')}}
   else if(a==='gldel'){const g=gl.find(x=>x.id===el.dataset.id);if(g&&g.log){delete g.log[el.dataset.d];save();render();const s=document.getElementById('glg');if(s)s.outerHTML=gLogHtml(g,dk())}}
   else if(a==='gle'){const g=gl.find(x=>x.id===el.dataset.id);if(g){document.getElementById('gld').value=el.dataset.d;const t=document.getElementById('glt');t.value=g.log[el.dataset.d]||'';t.focus()}}
@@ -334,7 +368,7 @@ function gcal(t){
   const u='https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(t.title)+'&dates='+d.split('-').join('')+'/'+dk(n).split('-').join('')+'&details='+encodeURIComponent('Added from MyBook');
   window.open(u,'_blank','noopener');
 }
-const payload=()=>JSON.stringify({app:'mybook',version:1,exported:new Date().toISOString(),todos,sessions:ds,habits:hb,goals:gl},null,2);
+const payload=()=>JSON.stringify({app:'mybook',version:1,exported:new Date().toISOString(),todos,sessions:ds,habits:hb,goals:gl,quotes:ql,images:im},null,2);
 function msg(s){const m=document.getElementById('dm');if(m)m.textContent=s}
 function exportData(){
   try{const b=new Blob([payload()],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='mybook-backup-'+dk()+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);msg('Backup downloaded.')}catch(e){msg('Download failed. Use Copy backup instead.')}
@@ -357,7 +391,7 @@ function applyImport(txt){
   let n=list.length;
   if(rep)todos=list;else{const ids=new Set(todos.map(t=>t.id));n=0;list.forEach(t=>{if(!ids.has(t.id)){todos.push(t);n++}})}
   const dl=(j&&Array.isArray(j.sessions)?j.sessions:[]).map(cleanD).filter(Boolean);if(rep)ds=dl;else{const di=new Set(ds.map(x=>x.id));dl.forEach(x=>{if(!di.has(x.id))ds.push(x)})}
-  impHabits(j&&j.habits,rep);impGoals(j&&j.goals,rep);
+  impHabits(j&&j.habits,rep);impGoals(j&&j.goals,rep);impQuotes(j&&j.quotes,rep);impImgs(j&&j.images,rep);
   save();render();msg((rep?'Replaced all tasks with ':'Imported ')+n+' task'+(n===1?'':'s')+'.');
 }
 function importText(){applyImport(document.getElementById('pt').value)}
@@ -518,15 +552,15 @@ const goalsOn=day=>gl.filter(g=>(g.created<=day&&(!g.achieved||g.achieved>=day)&
 const goalEv=day=>gl.some(g=>g.created===day||g.achieved===day||g.deadline===day||g.archived===day||(g.log||{})[day]);
 function impGoals(a,rep){
   if(!Array.isArray(a))return;
-  const l=a.filter(g=>g&&g.id&&typeof g.name==='string'&&okd(g.created)).map(g=>{const lg={};if(g.log&&typeof g.log==='object')for(const d in g.log)if(okd(d)&&typeof g.log[d]==='string')lg[d]=g.log[d];return{id:String(g.id),name:g.name,details:String(g.details||''),deadline:okd(g.deadline),created:g.created,achieved:okd(g.achieved),notes:String(g.notes||''),archived:okd(g.archived),log:lg}});
+  const l=a.filter(g=>g&&g.id&&typeof g.name==='string'&&okd(g.created)).map(g=>{const lg={};if(g.log&&typeof g.log==='object')for(const d in g.log)if(okd(d)&&typeof g.log[d]==='string')lg[d]=g.log[d];return{id:String(g.id),name:g.name,details:String(g.details||''),deadline:okd(g.deadline),created:g.created,achieved:okd(g.achieved),notes:String(g.notes||''),archived:okd(g.archived),log:lg,imgs:Array.isArray(g.imgs)?g.imgs.filter(x=>typeof x==='string'):[]}});
   if(rep){gl=l;return}
   const ids=new Set(gl.map(g=>g.id));l.forEach(g=>{if(!ids.has(g.id))gl.push(g)});
 }
 function gCard(g){
-  const st=gStat(g),today=dk();let chip='No deadline';
+  const st=gStat(g),today=dk();let chip='Created '+fmt(g.created);
   if(g.deadline){const n=dd(g.deadline,today);chip=st==='cf'?'Overdue by '+(-n)+' day'+(n===-1?'':'s')+' · was '+fmt(g.deadline):st==='ach'||st==='arc'?'Deadline '+fmt(g.deadline):n===0?'Deadline today':'Due '+fmt(g.deadline)+' · '+n+' day'+(n===1?'':'s')+' left'}
-  const days=Object.keys(g.log||{}).length,tl=(g.log||{})[today],pv=st==='ach'||st==='arc'?g.notes:tl?'Today: '+tl:'';
-  return `<div class="gcard ${st}" data-a="gopen" data-id="${g.id}" data-dr="g:${st}"><button class="chk ${g.achieved?'on':''}" data-a="gach" data-id="${g.id}" ${g.archived?'disabled':''} aria-label="Mark achieved">${g.achieved?'✓':''}</button><div class="bd"><div class="tt ${g.achieved?'dn':''}">${esc(g.name)}</div><div class="mt"><span class="gdl">${chip}</span>${g.achieved?'<span class="fin">Achieved '+fmt(g.achieved)+'</span>':''}${g.archived?'<span>Archived '+fmt(g.archived)+'</span>':''}<span>${days} day${days===1?'':'s'} logged</span></div>${pv?'<div class="gt">'+esc(pv.length>90?pv.slice(0,90)+'…':pv)+'</div>':''}</div>${g.archived?`<button class="btn rc" data-a="gunarc" data-id="${g.id}">Restore</button>`:!g.achieved?`<button class="btn rc" data-a="glog" data-id="${g.id}">Log today</button>`:''}${g.archived||g.achieved?'':'<button class="grip" aria-label="Drag to reorder">⋮⋮</button>'}</div>`;
+  const days=Object.keys(g.log||{}).length,tl=(g.log||{})[today],pv=tl?'Today: '+tl:'',th=(g.imgs||[])[0]&&im[g.imgs[0]];
+  return `<div class="gcard ${st}" data-a="gopen" data-id="${g.id}" data-dr="g:${st}"><button class="chk ${g.achieved?'on':''}" data-a="gach" data-id="${g.id}" ${g.archived?'disabled':''} aria-label="Mark achieved">${g.achieved?'✓':''}</button>${th?`<img class="gth" src="${th}" alt="">`:''}<div class="bd"><div class="tt ${g.achieved?'dn':''}">${esc(g.name)}</div><div class="mt"><span class="gdl">${chip}</span>${g.achieved?'<span class="fin">Achieved '+fmt(g.achieved)+'</span>':''}${g.archived?'<span>Archived '+fmt(g.archived)+'</span>':''}<span>${days} day${days===1?'':'s'} logged</span></div>${pv?'<div class="gt">'+esc(pv.length>90?pv.slice(0,90)+'…':pv)+'</div>':''}</div>${g.archived?`<button class="btn rc" data-a="gunarc" data-id="${g.id}">Restore</button>`:!g.achieved?`<button class="btn rc" data-a="glog" data-id="${g.id}">Log today</button>`:''}${g.archived||g.achieved?'':'<button class="grip" aria-label="Drag to reorder">⋮⋮</button>'}</div>`;
 }
 function goalView(){
   const hd=document.querySelector('header'),app=document.getElementById('app');
@@ -563,7 +597,7 @@ function gLogHtml(g,day){
 function goalMod(g,focus,day){
   gcur=g.id;day=day||dk();
   const f=(l,h)=>`<label class="fl">${l}</label>${h}`;
-  openMod(`<h3>${g.achieved?'🏆 ':''}Goal</h3>`+f('Goal name',`<input class="inp" id="gn" value="${esc(g.name)}" maxlength="120">`)+f('Details: how will you feel when you achieve it?',`<textarea id="gd" rows="3">${esc(g.details||'')}</textarea>`)+`<div class="two"><div>${f('Deadline',`<input type="date" class="inp" id="gdl" data-clr="1" value="${g.deadline||''}">`)}</div>${g.achieved?`<div>${f('Achievement date',`<input type="date" class="inp" id="gad" value="${g.achieved}">`)}</div>`:''}</div>`+(g.archived?f('Archived on',`<input type="date" class="inp" id="gar" value="${g.archived}">`):'')+f('Notes: how did you reach there?',`<textarea id="gnt" rows="3" placeholder="What worked, what you learned…">${esc(g.notes||'')}</textarea>`)+f('Created',`<input type="date" class="inp" id="gcr" value="${g.created}">`)+gLogHtml(g,day)+`<div class="row" style="flex-wrap:wrap"><button class="btn gy" data-a="gach2" data-id="${g.id}">${g.achieved?'Reopen goal':'Mark achieved'}</button><button class="btn gy" data-a="${g.archived?'gunarc':'garc'}" data-id="${g.id}">${g.archived?'Restore':'Archive'}</button></div><div class="row"><button class="btn gy" data-a="gdel" data-id="${g.id}">Delete</button><button class="btn pp" data-a="gsv" data-id="${g.id}">Save</button></div>`);
+  openMod(`<h3>${g.achieved?'🏆 ':''}Goal</h3>`+f('Goal name',`<input class="inp" id="gn" value="${esc(g.name)}" maxlength="120">`)+f('Details: how will you feel when you achieve it?',`<textarea id="gd" rows="3">${esc(g.details||'')}</textarea>`)+`<div class="two"><div>${f('Deadline',`<input type="date" class="inp" id="gdl" data-clr="1" value="${g.deadline||''}">`)}</div>${g.achieved?`<div>${f('Achievement date',`<input type="date" class="inp" id="gad" value="${g.achieved}">`)}</div>`:''}</div>`+(g.archived?f('Archived on',`<input type="date" class="inp" id="gar" value="${g.archived}">`):'')+f('Notes: how did you reach there?',`<textarea id="gnt" rows="3" placeholder="What worked, what you learned…">${esc(g.notes||'')}</textarea>`)+gImgHtml(g)+f('Created',`<input type="date" class="inp" id="gcr" value="${g.created}">`)+gLogHtml(g,day)+`<div class="row" style="flex-wrap:wrap"><button class="btn gy" data-a="gach2" data-id="${g.id}">${g.achieved?'Reopen goal':'Mark achieved'}</button><button class="btn gy" data-a="${g.archived?'gunarc':'garc'}" data-id="${g.id}">${g.archived?'Restore':'Archive'}</button></div><div class="row"><button class="btn gy" data-a="gdel" data-id="${g.id}">Delete</button><button class="btn pp" data-a="gsv" data-id="${g.id}">Save</button></div>`);
   if(focus){const t=document.getElementById(focus==='notes'?'gnt':'glt');setTimeout(()=>{t.focus();t.scrollIntoView({block:'center'})},60)}
 }
 function goalBox(day){
@@ -686,6 +720,59 @@ function habFit(){
   hz=Math.max(.4,Math.min(1,Math.floor(Math.min(w/t.offsetWidth,hh/t.offsetHeight)*20)/20));
   try{localStorage.setItem('mybook.hz',hz)}catch(e){}
   render();
+}
+const QG=[['#7f77dd','#534ab7'],['#1d9e75','#0f6e56'],['#d4537e','#993556'],['#ba7517','#854f0b'],['#378add','#185fa5']];
+const saveImgs=()=>{try{localStorage.setItem('mybook.img',JSON.stringify(im));return true}catch(e){toast('Storage is full. Remove some images.');return false}};
+function lightbox(src){if(!src)return;const d=document.createElement('div');d.className='lb';const i=document.createElement('img');i.alt='Goal image';i.src=src;d.appendChild(i);d.addEventListener('click',()=>d.remove());document.body.appendChild(d)}
+function shrink(f,cb){const r=new FileReader();r.onload=()=>{const i=new Image();i.onload=()=>{const k=Math.min(1,900/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=Math.round(i.width*k);c.height=Math.round(i.height*k);c.getContext('2d').drawImage(i,0,0,c.width,c.height);cb(c.toDataURL('image/jpeg',.72))};i.onerror=()=>toast('Could not read that image.');i.src=r.result};r.readAsDataURL(f)}
+function gImgHtml(g){
+  const l=g.imgs||[];
+  return `<div class="sec2" id="gim"><h4>Images${l.length?' · '+l.length:''}</h4><div class="ig">${l.map(id=>im[id]?`<div class="it"><img src="${im[id]}" alt="Goal image" data-a="gimgv" data-i="${id}"><button class="x" data-a="gimgd" data-id="${g.id}" data-i="${id}" aria-label="Remove image">×</button></div>`:'').join('')}</div><button class="btn rc" data-a="gimgadd" style="margin-top:8px;padding:9px 14px">+ Add images</button><input type="file" id="gimg" accept="image/*" multiple hidden></div>`;
+}
+document.addEventListener('change',e=>{
+  if(e.target.id!=='gimg')return;
+  const g=gl.find(x=>x.id===gcur);if(!g)return;
+  [...e.target.files].forEach(f=>shrink(f,u=>{
+    const id='i'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+    g.imgs=g.imgs||[];g.imgs.push(id);im[id]=u;
+    if(!saveImgs()){g.imgs.pop();delete im[id];return}
+    save();const s=document.getElementById('gim');if(s)s.outerHTML=gImgHtml(g);render();
+  }));
+});
+function impImgs(m,rep){if(!m||typeof m!=='object')return;const o={};for(const k in m)if(typeof m[k]==='string'&&m[k].indexOf('data:image/')===0)o[k]=m[k];im=rep?o:Object.assign(im,o);saveImgs()}
+function impQuotes(a,rep){
+  if(!Array.isArray(a))return;
+  const l=a.filter(q=>q&&q.id&&typeof q.text==='string'&&okd(q.created)).map(q=>({id:String(q.id),text:q.text,author:String(q.author||''),created:q.created,createdAt:iso(q.createdAt),archived:okd(q.archived)}));
+  if(rep){ql=l;return}
+  const ids=new Set(ql.map(q=>q.id));l.forEach(q=>{if(!ids.has(q.id))ql.push(q)});
+}
+function qSlide(q,i){
+  const g=QG[i%QG.length];
+  return `<div class="qsl"><div class="qc" style="background:linear-gradient(135deg,${g[0]},${g[1]})" data-a="qopen" data-id="${q.id}"><div class="qm">“</div><div class="qt">${esc(q.text)}</div>${q.author?`<div class="qa">— ${esc(q.author)}</div>`:''}<div class="qd">Added ${fmt(q.created)}</div></div><div class="qb"><button class="btn rc" data-a="qarc" data-id="${q.id}">Archive</button><button class="btn rc" data-a="qopen" data-id="${q.id}">Edit</button><button class="btn rc" data-a="qdel" data-id="${q.id}">Delete</button></div></div>`;
+}
+const qRow=q=>`<div class="box" data-a="qopen" data-id="${q.id}" style="cursor:pointer"><div class="qt2">${esc(q.text)}</div><div class="mt">${q.author?`<span>— ${esc(q.author)}</span>`:''}<span>Added ${fmt(q.created)}</span>${q.archived?`<span>Archived ${fmt(q.archived)}</span>`:''}</div>${q.archived?`<div class="row" style="margin-top:8px"><button class="btn gy" data-a="qres" data-id="${q.id}">Restore</button><button class="btn gy" data-a="qdel" data-id="${q.id}">Delete</button></div>`:''}</div>`;
+function quoteView(){
+  const hd=document.querySelector('header'),app=document.getElementById('app');
+  hd.style.display='';sub.textContent='';ttl.textContent='Quotes';bar.style.display='none';
+  const act=ql.filter(q=>!q.archived),arc=ql.filter(q=>q.archived);
+  cnt.textContent=act.length+' saved · '+arc.length+' archived';
+  const empty='<div class="empty">Nothing here yet. Tap + to save a quote.</div>';
+  const seg=`<div class="hbar"><div class="seg">${[['swipe','Swipe'],['list','List'],['arc','Archived '+arc.length]].map(s=>`<button class="${qv===s[0]?'a':''}" data-a="qv" data-qv="${s[0]}">${s[1]}</button>`).join('')}</div></div>`;
+  let b;
+  if(qv==='swipe'){
+    qi=Math.min(qi,Math.max(0,act.length-1));
+    b=act.length?`<div class="qs" id="qs">${act.map(qSlide).join('')}</div><div class="qn"><button class="x" data-a="qprev" aria-label="Previous quote">‹</button><span id="qc">${qi+1} / ${act.length}</span><button class="x" data-a="qnext" aria-label="Next quote">›</button></div>`:empty;
+  }else b=(qv==='list'?act:arc).map(qRow).join('')||empty;
+  app.innerHTML=seg+b+'<button class="fab" data-a="qnew" aria-label="New quote" style="background:#7f77dd">+</button>';
+  const s=document.getElementById('qs');
+  if(s){s.scrollLeft=qi*s.clientWidth;s.addEventListener('scroll',()=>{const i=Math.round(s.scrollLeft/s.clientWidth);if(i!==qi){qi=i;const c=document.getElementById('qc');if(c)c.textContent=(qi+1)+' / '+act.length}})}
+}
+function qNew(){
+  openMod(`<h3>New quote</h3><label class="fl">Quote</label><textarea id="qx" rows="4" placeholder="Write or paste a quote…"></textarea><label class="fl">Author or source (optional)</label><input class="inp" id="qau" maxlength="80"><label class="fl">Added on</label><input type="date" class="inp" id="qcr" value="${dk()}"><div class="row"><button class="btn pp" data-a="qadd">Save quote</button></div>`);
+  setTimeout(()=>document.getElementById('qx').focus(),50);
+}
+function qMod(q){
+  openMod(`<h3>Quote</h3><label class="fl">Quote</label><textarea id="qx" rows="4">${esc(q.text)}</textarea><label class="fl">Author or source</label><input class="inp" id="qau" value="${esc(q.author||'')}" maxlength="80"><div class="two"><div><label class="fl">Added on</label><input type="date" class="inp" id="qcr" value="${q.created}"></div>${q.archived?`<div><label class="fl">Archived on</label><input type="date" class="inp" id="qar" value="${q.archived}"></div>`:''}</div><div class="row"><button class="btn gy" data-a="${q.archived?'qres':'qarc'}" data-id="${q.id}">${q.archived?'Restore':'Archive'}</button><button class="btn gy" data-a="qdel" data-id="${q.id}">Delete</button></div><div class="row"><button class="btn pp" data-a="qsv" data-id="${q.id}">Save</button></div>`);
 }
 setInterval(()=>{document.querySelectorAll('.live').forEach(el=>{el.textContent=clk(Date.now()-new Date(el.dataset.s))})},1000);
 const lpCancel=()=>{clearTimeout(lpT);lpT=null};
