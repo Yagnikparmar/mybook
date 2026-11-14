@@ -194,6 +194,8 @@ mark{background:rgba(255,200,0,.35);color:inherit;border-radius:3px;padding:0 1p
 .qs{flex-direction:column;overflow-x:hidden;overflow-y:auto;scroll-snap-type:y mandatory;height:calc(100vh - 300px);height:calc(100dvh - 300px);min-height:340px;overscroll-behavior:contain}
 .qs .qsl{display:flex;flex-direction:column;padding:4px 2px}
 .qs .qc{flex:1;min-height:0;overflow:auto}
+.qs{touch-action:pan-y;-webkit-user-select:none;user-select:none;cursor:grab}
+.qs .qsl{will-change:transform,opacity}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -796,7 +798,7 @@ function quoteView(){
   }else b=(qv==='list'?act:arc).map(qRow).join('')||empty;
   app.innerHTML=seg+b+'<button class="fab" data-a="qnew" aria-label="New quote" style="background:#7f77dd">+</button>';
   const s=document.getElementById('qs');
-  if(s){const st=s.clientHeight/qz;s.scrollTop=qi*st;s.addEventListener('scroll',()=>{const i=Math.round(s.scrollTop/st);if(i!==qi){qi=i;const c=document.getElementById('qc');if(c)c.textContent=(qi+1)+' / '+act.length}})}
+  if(s){window.scrollTo(0,0);qFit();let tk=0;s.addEventListener('scroll',()=>{if(tk)return;tk=requestAnimationFrame(()=>{tk=0;qFx(s);const st=s.clientHeight/qz,i=Math.round(s.scrollTop/st);if(i!==qi){qi=i;const c=document.getElementById('qc');if(c)c.textContent=(qi+1)+' / '+act.length}})})}
 }
 function qNew(){
   openMod(`<h3>New quote</h3><label class="fl">Quote</label><textarea id="qx" rows="4" placeholder="Write or paste a quote…"></textarea><label class="fl">Author or source (optional)</label><input class="inp" id="qau" maxlength="80"><label class="fl">Added on</label><input type="date" class="inp" id="qcr" value="${dk()}"><div class="row"><button class="btn pp" data-a="qadd">Save quote</button></div>`);
@@ -911,6 +913,47 @@ function calDots(k){
   const d=[[dayTasks(k).length,'var(--p)'],[sessionsOn(k).length||dsOn(k).length,'#d4537e'],[!!hb.data[k],'var(--gr)'],[goalEv(k),'#ba7517']].filter(x=>x[0]).map(x=>`<i style="background:${x[1]}"></i>`).join('');
   return d?'<span class="cd">'+d+'</span>':'';
 }
+function qFx(s){
+  const c=s.getBoundingClientRect(),mid=c.top+c.height/2;
+  [...s.children].forEach(el=>{const r=el.getBoundingClientRect(),d=Math.min(1,Math.abs(r.top+r.height/2-mid)/Math.max(1,r.height));el.style.transform='scale('+(1-.14*d).toFixed(3)+')';el.style.opacity=(1-.6*d).toFixed(2)});
+}
+function qFitText(s){
+  s.querySelectorAll('.qc').forEach(c=>{
+    const t=c.querySelector('.qt');if(!t)return;
+    const max=Math.round(40/Math.sqrt(qz));let fs=14;t.style.fontSize=fs+'px';
+    while(fs<max){t.style.fontSize=(fs+2)+'px';if(c.scrollHeight>c.clientHeight+1){t.style.fontSize=fs+'px';return}fs+=2}
+  });
+}
+function qFit(){
+  const s=document.getElementById('qs');if(!s)return;
+  const top=s.getBoundingClientRect().top+window.scrollY;
+  s.style.height=Math.max(300,innerHeight-top-(innerWidth>=900?80:150))+'px';
+  qFitText(s);
+  s.scrollTop=qi*(s.clientHeight/qz);
+  qFx(s);
+}
+window.addEventListener('resize',()=>{if(tab==='quotes')qFit()});
+let qsd=null;
+document.addEventListener('pointerdown',e=>{
+  const s=e.target.closest('.qs');
+  if(!s||e.pointerType!=='mouse'||e.button!==0||e.target.closest('button'))return;
+  qsd={s,y0:e.clientY,t0:s.scrollTop,moved:false};
+  s.style.scrollSnapType='none';s.style.cursor='grabbing';
+});
+document.addEventListener('pointermove',e=>{
+  if(!qsd)return;
+  const dy=e.clientY-qsd.y0;if(Math.abs(dy)>4)qsd.moved=true;
+  qsd.s.scrollTop=qsd.t0-dy;
+});
+const qUp=()=>{
+  if(!qsd)return;
+  const{s,moved}=qsd;qsd=null;s.style.cursor='';
+  const st=s.clientHeight/qz,i=Math.round(s.scrollTop/st);
+  s.scrollTo({top:i*st,behavior:'smooth'});
+  setTimeout(()=>{s.style.scrollSnapType=''},400);
+  if(moved)lpFired=true;
+};
+['pointerup','pointercancel'].forEach(n=>document.addEventListener(n,qUp));
 setInterval(()=>{document.querySelectorAll('.live').forEach(el=>{el.textContent=clk(Date.now()-new Date(el.dataset.s))})},1000);
 const lpCancel=()=>{clearTimeout(lpT);lpT=null};
 document.addEventListener('pointerdown',e=>{
