@@ -189,17 +189,11 @@ main{max-width:980px;margin:0 auto;padding:24px 40px}
 .ssub{display:flex;justify-content:space-between;align-items:center;padding:6px 4px 6px 14px;font-size:12px;color:var(--mu);border-top:1px dashed var(--bd);cursor:pointer}
 .ssub b{font-size:12px;color:var(--tx)}
 mark{background:rgba(255,200,0,.35);color:inherit;border-radius:3px;padding:0 1px}
-.hw{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:12px;margin-bottom:14px}
-.hwh{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:13px}
-.hwh button{border:0;background:none;color:var(--p);font-size:12px;font-weight:600;cursor:pointer}
-.hwd{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
-.hwc{border:1px solid var(--bd);border-radius:12px;padding:6px 2px;text-align:center;cursor:pointer;background:var(--bg)}
-.hwc.t{border-color:var(--p);background:var(--pl)}
-.hwc small{display:block;font-size:10px;color:var(--mu)}
-.hwc b{display:block;font-size:14px}
-.hwc .dots{display:flex;justify-content:center;gap:2px;margin-top:3px;min-height:6px}
-.hwc .dots i{width:5px;height:5px;border-radius:50%}
-.hwc em{display:block;font-style:normal;font-size:10px;color:var(--mu);margin-top:2px;min-height:12px}
+.cd{display:flex;gap:2px;justify-content:center}
+.cal button.s i{box-shadow:0 0 0 1px #fff}
+.qs{flex-direction:column;overflow-x:hidden;overflow-y:auto;scroll-snap-type:y mandatory;height:calc(100vh - 300px);height:calc(100dvh - 300px);min-height:340px;overscroll-behavior:contain}
+.qs .qsl{display:flex;flex-direction:column;padding:4px 2px}
+.qs .qc{flex:1;min-height:0;overflow:auto}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -269,15 +263,15 @@ function render(){
     sub.textContent=d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'long',year:'numeric'});
     ttl.textContent='My To-Do';cnt.textContent=dn+' of '+act.length+' tasks done';
     bar.style.display='';bar.firstChild.style.width=(act.length?dn/act.length*100:0)+'%';
-    app.innerHTML=histWidget()+(groups(todos,today,true)||'<div class="empty">No tasks yet. Add your first one below.</div>')+
+    app.innerHTML=(groups(todos,today,true)||'<div class="empty">No tasks yet. Add your first one below.</div>')+
      `<div class="add"><textarea id="ni" rows="1" placeholder="Add a task… (Enter for new line)"></textarea><button class="plus" data-a="add">+</button></div>`;
   }else if(tab==='hist'){if(!sel)sel=dk();
     hd.style.display='';sub.textContent='';ttl.textContent='History';cnt.textContent='Tap any day to view or add entries';bar.style.display='none';
     const y=month.getFullYear(),m=month.getMonth(),first=new Date(y,m,1).getDay(),n=new Date(y,m+1,0).getDate();
     let cells='';for(const l of'SMTWTFS')cells+=`<span>${l}</span>`;
     for(let i=0;i<first;i++)cells+='<button class="e"></button>';
-    for(let i=1;i<=n;i++){const k=dk(new Date(y,m,i)),has=dayTasks(k).length||sessionsOn(k).length||dsOn(k).length||!!hb.data[k]||goalEv(k);
-      cells+=`<button class="${k===today?'t':''} ${k===sel?'s':''}" data-day="${k}">${i}${has?'<i></i>':''}</button>`}
+    for(let i=1;i<=n;i++){const k=dk(new Date(y,m,i)),dots=calDots(k);
+      cells+=`<button class="${k===today?'t':''} ${k===sel?'s':''}" data-day="${k}">${i}${dots}</button>`}
     let det='<div class="empty">Tap a day to view or add tasks</div>';
     if(sel){const l=dayTasks(sel);
       const dn=l.filter(t=>t.done).length,ph=(n,bg,c)=>`<div class="box"><span class="bdg" style="background:${bg};color:${c}">${n}</span><span style="font-size:12px;color:var(--mu)">Coming soon…</span></div>`;
@@ -351,9 +345,7 @@ document.addEventListener('click',e=>{
   else if(a==='gpsv'){const g=gl.find(x=>x.id===el.dataset.id);if(g)doAch(g,'partial',+document.getElementById('gpc').value||50,document.getElementById('gpd').value.trim())}
   else if(a==='gnotes'){const g=gl.find(x=>x.id===el.dataset.id);if(g)goalMod(g,'notes')}
   else if(a==='gcancel')closeMod();
-  else if(a==='hwd'){sel=el.dataset.k;month=new Date(+sel.slice(0,4),+sel.slice(5,7)-1,1);setTab('hist')}
-  else if(a==='hwall'){sel=dk();month=new Date();setTab('hist')}
-  else if(a==='qv'){qv=el.dataset.qv;render()}
+      else if(a==='qv'){qv=el.dataset.qv;render()}
   else if(a==='qnew')qNew();
   else if(a==='qadd'){const x=document.getElementById('qx').value.trim();if(!x)return;ql.unshift({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),text:x,author:document.getElementById('qau').value.trim(),created:document.getElementById('qcr').value||dk(),createdAt:new Date().toISOString(),archived:null});qi=0;qv='swipe';save();closeMod();render();toast('Quote saved')}
   else if(a==='qopen'){const q=ql.find(x=>x.id===el.dataset.id);if(q)qMod(q)}
@@ -361,7 +353,7 @@ document.addEventListener('click',e=>{
   else if(a==='qarc'){const q=ql.find(x=>x.id===el.dataset.id);if(q){q.archived=dk();save();closeMod();render();toast('Quote archived')}}
   else if(a==='qres'){const q=ql.find(x=>x.id===el.dataset.id);if(q){q.archived=null;save();closeMod();render()}}
   else if(a==='qdel'){const q=ql.find(x=>x.id===el.dataset.id);if(!q)return;if(el.dataset.arm){ql=ql.filter(x=>x!==q);save();closeMod();render()}else{const t0=el.textContent;el.dataset.arm='1';el.textContent='Sure?';setTimeout(()=>{el.dataset.arm='';el.textContent=t0},2500)}}
-  else if(a==='qprev'||a==='qnext'){const s=document.getElementById('qs');if(s)s.scrollBy({left:(a==='qnext'?1:-1)*s.clientWidth/qz,behavior:'smooth'})}
+  else if(a==='qprev'||a==='qnext'){const s=document.getElementById('qs');if(s)s.scrollBy({top:(a==='qnext'?1:-1)*s.clientHeight/qz,behavior:'smooth'})}
   else if(a==='gimgadd'){document.getElementById('gimg').click()}
   else if(a==='gimgv'){lightbox(im[el.dataset.i])}
   else if(a==='gimgd'){const g=gl.find(x=>x.id===el.dataset.id);if(g){loadIm();g.imgs=(g.imgs||[]).filter(x=>x!==el.dataset.i);delete im[el.dataset.i];saveImgs();save();const s=document.getElementById('gim');if(s)s.outerHTML=gImgHtml(g);render()}}
@@ -796,15 +788,15 @@ function quoteView(){
   const act=ql.filter(q=>!q.archived),arc=ql.filter(q=>q.archived);
   cnt.textContent=act.length+' saved · '+arc.length+' archived';
   const empty='<div class="empty">Nothing here yet. Tap + to save a quote.</div>';
-  const seg=`<div class="hbar"><div class="seg">${[['swipe','Swipe'],['list','List'],['arc','Archived '+arc.length]].map(s=>`<button class="${qv===s[0]?'a':''}" data-a="qv" data-qv="${s[0]}">${s[1]}</button>`).join('')}</div>${qv==='swipe'?`<div class="zm"><button data-a="qzm" data-z="1" aria-label="Zoom out">−</button><b>${Math.round(100/qz)}%</b><button data-a="qzm" data-z="-1" aria-label="Zoom in">+</button></div>`:''}</div>`;
+  const seg=`<div class="hbar"><div class="seg">${[['swipe','Scroll'],['list','List'],['arc','Archived '+arc.length]].map(s=>`<button class="${qv===s[0]?'a':''}" data-a="qv" data-qv="${s[0]}">${s[1]}</button>`).join('')}</div>${qv==='swipe'?`<div class="zm"><button data-a="qzm" data-z="1" aria-label="Zoom out">−</button><b>${Math.round(100/qz)}%</b><button data-a="qzm" data-z="-1" aria-label="Zoom in">+</button></div>`:''}</div>`;
   let b;
   if(qv==='swipe'){
     qi=Math.min(qi,Math.max(0,act.length-1));
-    b=act.length?`<div class="qs${qz>1?' m':''}" id="qs" style="--n:${qz}${qz>1?';max-width:none':''}">${act.map(qSlide).join('')}</div><div class="qn"><button class="x" data-a="qprev" aria-label="Previous quote">‹</button><span id="qc">${qi+1} / ${act.length}</span><button class="x" data-a="qnext" aria-label="Next quote">›</button></div>`:empty;
+    b=act.length?`<div class="qs${qz>1?' m':''}" id="qs" style="--n:${qz}">${act.map(qSlide).join('')}</div><div class="qn"><button class="x" data-a="qprev" aria-label="Previous quote">▲</button><span id="qc">${qi+1} / ${act.length}</span><button class="x" data-a="qnext" aria-label="Next quote">▼</button></div>`:empty;
   }else b=(qv==='list'?act:arc).map(qRow).join('')||empty;
   app.innerHTML=seg+b+'<button class="fab" data-a="qnew" aria-label="New quote" style="background:#7f77dd">+</button>';
   const s=document.getElementById('qs');
-  if(s){const st=s.clientWidth/qz;s.scrollLeft=qi*st;s.addEventListener('scroll',()=>{const i=Math.round(s.scrollLeft/st);if(i!==qi){qi=i;const c=document.getElementById('qc');if(c)c.textContent=(qi+1)+' / '+act.length}})}
+  if(s){const st=s.clientHeight/qz;s.scrollTop=qi*st;s.addEventListener('scroll',()=>{const i=Math.round(s.scrollTop/st);if(i!==qi){qi=i;const c=document.getElementById('qc');if(c)c.textContent=(qi+1)+' / '+act.length}})}
 }
 function qNew(){
   openMod(`<h3>New quote</h3><label class="fl">Quote</label><textarea id="qx" rows="4" placeholder="Write or paste a quote…"></textarea><label class="fl">Author or source (optional)</label><input class="inp" id="qau" maxlength="80"><label class="fl">Added on</label><input type="date" class="inp" id="qcr" value="${dk()}"><div class="row"><button class="btn pp" data-a="qadd">Save quote</button></div>`);
@@ -915,13 +907,9 @@ document.addEventListener('input',e=>{
   if(r)r.innerHTML=hq.trim()?searchHtml():'';
 });
 function loadIm(){if(imReady)return;imReady=true;try{const r=JSON.parse(localStorage.getItem('mybook.img')||'{}');if(r&&typeof r==='object')im=Object.assign(r,im)}catch(e){}}
-function histWidget(){
-  const days=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push(d)}
-  const today=dk();
-  return `<div class="hw"><div class="hwh"><b>Last 7 days</b><button data-a="hwall">Open history ›</button></div><div class="hwd">${days.map(d=>{
-    const k=dk(d),done=todos.filter(t=>t.done&&t.comp===k).length;
-    const dots=[[todos.some(t=>t.created===k||t.comp===k),'var(--p)'],[sessionsOn(k).length||dsOn(k).length,'#d4537e'],[!!hb.data[k],'var(--gr)'],[goalEv(k),'#ba7517']].filter(x=>x[0]).map(x=>`<i style="background:${x[1]}"></i>`).join('');
-    return `<div class="hwc ${k===today?'t':''}" data-a="hwd" data-k="${k}"><small>${'SMTWTFS'[d.getDay()]}</small><b>${d.getDate()}</b><div class="dots">${dots}</div><em>${done?done+' done':''}</em></div>`}).join('')}</div></div>`;
+function calDots(k){
+  const d=[[dayTasks(k).length,'var(--p)'],[sessionsOn(k).length||dsOn(k).length,'#d4537e'],[!!hb.data[k],'var(--gr)'],[goalEv(k),'#ba7517']].filter(x=>x[0]).map(x=>`<i style="background:${x[1]}"></i>`).join('');
+  return d?'<span class="cd">'+d+'</span>':'';
 }
 setInterval(()=>{document.querySelectorAll('.live').forEach(el=>{el.textContent=clk(Date.now()-new Date(el.dataset.s))})},1000);
 const lpCancel=()=>{clearTimeout(lpT);lpT=null};
