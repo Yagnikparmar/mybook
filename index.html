@@ -196,6 +196,8 @@ mark{background:rgba(255,200,0,.35);color:inherit;border-radius:3px;padding:0 1p
 .qs .qc{flex:1;min-height:0;overflow:auto}
 .qs{touch-action:pan-y;-webkit-user-select:none;user-select:none;cursor:grab}
 .qs .qsl{will-change:transform,opacity}
+.qrow,.qsl{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.qlift{box-shadow:0 12px 30px rgba(0,0,0,.35);cursor:grabbing}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -781,24 +783,24 @@ function impQuotes(a,rep){
 }
 function qSlide(q,i){
   const g=QG[i%QG.length];
-  return `<div class="qsl"><div class="qc" style="background:linear-gradient(135deg,${g[0]},${g[1]})" data-a="qopen" data-id="${q.id}"><div class="qm">“</div><div class="qt">${esc(q.text)}</div>${q.author?`<div class="qa">— ${esc(q.author)}</div>`:''}<div class="qd">Added ${fmt(q.created)}</div></div><div class="qb"><button class="btn rc" data-a="qarc" data-id="${q.id}">Archive</button><button class="btn rc" data-a="qopen" data-id="${q.id}">Edit</button><button class="btn rc" data-a="qdel" data-id="${q.id}">Delete</button></div></div>`;
+  return `<div class="qsl" data-qid="${q.id}"><div class="qc" style="background:linear-gradient(135deg,${g[0]},${g[1]})" data-a="qopen" data-id="${q.id}"><div class="qm">“</div><div class="qt">${esc(q.text)}</div>${q.author?`<div class="qa">— ${esc(q.author)}</div>`:''}<div class="qd">Added ${fmt(q.created)}</div></div><div class="qb"><button class="btn rc" data-a="qarc" data-id="${q.id}">Archive</button><button class="btn rc" data-a="qopen" data-id="${q.id}">Edit</button><button class="btn rc" data-a="qdel" data-id="${q.id}">Delete</button></div></div>`;
 }
-const qRow=q=>`<div class="box" data-a="qopen" data-id="${q.id}" style="cursor:pointer"><div class="qt2">${esc(q.text)}</div><div class="mt">${q.author?`<span>— ${esc(q.author)}</span>`:''}<span>Added ${fmt(q.created)}</span>${q.archived?`<span>Archived ${fmt(q.archived)}</span>`:''}</div>${q.archived?`<div class="row" style="margin-top:8px"><button class="btn gy" data-a="qres" data-id="${q.id}">Restore</button><button class="btn gy" data-a="qdel" data-id="${q.id}">Delete</button></div>`:''}</div>`;
+const qRow=q=>`<div class="box qrow" data-qid="${q.id}" data-a="qopen" data-id="${q.id}" style="cursor:pointer"><div class="qt2">${esc(q.text)}</div><div class="mt">${q.author?`<span>— ${esc(q.author)}</span>`:''}<span>Added ${fmt(q.created)}</span>${q.archived?`<span>Archived ${fmt(q.archived)}</span>`:''}</div>${q.archived?`<div class="row" style="margin-top:8px"><button class="btn gy" data-a="qres" data-id="${q.id}">Restore</button><button class="btn gy" data-a="qdel" data-id="${q.id}">Delete</button></div>`:''}</div>`;
 function quoteView(){
   const hd=document.querySelector('header'),app=document.getElementById('app');
   hd.style.display='';sub.textContent='';ttl.textContent='Quotes';bar.style.display='none';
   const act=ql.filter(q=>!q.archived),arc=ql.filter(q=>q.archived);
-  cnt.textContent=act.length+' saved · '+arc.length+' archived';
+  cnt.textContent=act.length+' saved · '+arc.length+' archived · press and hold a quote to reorder';
   const empty='<div class="empty">Nothing here yet. Tap + to save a quote.</div>';
   const seg=`<div class="hbar"><div class="seg">${[['swipe','Scroll'],['list','List'],['arc','Archived '+arc.length]].map(s=>`<button class="${qv===s[0]?'a':''}" data-a="qv" data-qv="${s[0]}">${s[1]}</button>`).join('')}</div>${qv==='swipe'?`<div class="zm"><button data-a="qzm" data-z="1" aria-label="Zoom out">−</button><b>${Math.round(100/qz)}%</b><button data-a="qzm" data-z="-1" aria-label="Zoom in">+</button></div>`:''}</div>`;
   let b;
   if(qv==='swipe'){
     qi=Math.min(qi,Math.max(0,act.length-1));
-    b=act.length?`<div class="qs${qz>1?' m':''}" id="qs" style="--n:${qz}">${act.map(qSlide).join('')}</div><div class="qn"><button class="x" data-a="qprev" aria-label="Previous quote">▲</button><span id="qc">${qi+1} / ${act.length}</span><button class="x" data-a="qnext" aria-label="Next quote">▼</button></div>`:empty;
+    b=act.length?`<div class="qs${qz>1?' m':''}" id="qs" style="--n:${qz}">${act.map(qSlide).join('')}</div><div class="qn"><button class="x" data-a="qprev" aria-label="Previous quote">▲</button><button class="x" data-a="qnext" aria-label="Next quote">▼</button></div>`:empty;
   }else b=(qv==='list'?act:arc).map(qRow).join('')||empty;
   app.innerHTML=seg+b+'<button class="fab" data-a="qnew" aria-label="New quote" style="background:#7f77dd">+</button>';
   const s=document.getElementById('qs');
-  if(s){window.scrollTo(0,0);qFit();let tk=0;s.addEventListener('scroll',()=>{if(tk)return;tk=requestAnimationFrame(()=>{tk=0;qFx(s);const st=s.clientHeight/qz,i=Math.round(s.scrollTop/st);if(i!==qi){qi=i;const c=document.getElementById('qc');if(c)c.textContent=(qi+1)+' / '+act.length}})})}
+  if(s){window.scrollTo(0,0);qFit();let tk=0;s.addEventListener('scroll',()=>{if(tk)return;tk=requestAnimationFrame(()=>{tk=0;if(!(qdg&&qdg.active))qFx(s);const st=s.clientHeight/qz,i=Math.round(s.scrollTop/st);if(i!==qi){qi=i;const c=document.getElementById('qc');if(c)c.textContent=(qi+1)+' / '+act.length}})})}
 }
 function qNew(){
   openMod(`<h3>New quote</h3><label class="fl">Quote</label><textarea id="qx" rows="4" placeholder="Write or paste a quote…"></textarea><label class="fl">Author or source (optional)</label><input class="inp" id="qau" maxlength="80"><label class="fl">Added on</label><input type="date" class="inp" id="qcr" value="${dk()}"><div class="row"><button class="btn pp" data-a="qadd">Save quote</button></div>`);
@@ -954,6 +956,71 @@ const qUp=()=>{
   if(moved)lpFired=true;
 };
 ['pointerup','pointercancel'].forEach(n=>document.addEventListener(n,qUp));
+let qdg=null;
+const qPos=sc=>sc?sc.scrollTop:window.scrollY;
+document.addEventListener('pointerdown',e=>{
+  if(qdg)clearTimeout(qdg.t);
+  const el=e.target.closest('.qsl,.qrow');
+  if(!el||e.target.closest('button,input,textarea'))return;
+  if(e.pointerType==='mouse'&&e.button!==0)return;
+  qdg={el,x:e.clientX,y:e.clientY,cy:e.clientY,active:false};
+  qdg.t=setTimeout(qPick,420);
+});
+function qPick(){
+  if(!qdg)return;
+  if(qsd){qsd.s.style.cursor='';qsd=null}
+  const el=qdg.el,items=[...el.parentNode.children].filter(x=>x.dataset.qid),sc=el.closest('.qs');
+  qdg.active=true;qdg.items=items;qdg.sc=sc;qdg.i=items.indexOf(el);qdg.s0=qPos(sc);qdg.t2=qdg.i;
+  qdg.rects=items.map(x=>{const r=x.getBoundingClientRect();return{c:r.top+r.height/2+qdg.s0,h:r.height,t:r.top+qdg.s0,b:r.bottom+qdg.s0}});
+  const gap=items.length>1?Math.max(0,qdg.rects[1].t-qdg.rects[0].b):0;
+  qdg.dh=qdg.rects[qdg.i].h+gap;
+  if(sc)sc.style.scrollSnapType='none';
+  items.forEach(x=>{x.style.opacity='1';x.style.transform='none';if(x!==el)x.style.transition='transform .15s'});
+  el.style.zIndex='60';el.style.transition='none';el.classList.add('qlift');
+  try{if(navigator.vibrate)navigator.vibrate(25)}catch(_){}
+  qdg.raf=requestAnimationFrame(qAuto);
+}
+function qMove(){
+  const d=qdg,dy=(d.cy-d.y)+(qPos(d.sc)-d.s0),cen=d.rects[d.i].c+dy;
+  let t=0;d.rects.forEach((r,k)=>{if(k!==d.i&&r.c<cen)t++});
+  d.t2=t;
+  d.el.style.transform='translateY('+dy+'px) scale(1.02)';
+  d.items.forEach((x,k)=>{
+    if(k===d.i)return;
+    let s=0;
+    if(t>d.i&&k>d.i&&k<=t)s=-d.dh;else if(t<d.i&&k>=t&&k<d.i)s=d.dh;
+    x.style.transform=s?'translateY('+s+'px)':'none';
+  });
+}
+function qAuto(){
+  if(!qdg||!qdg.active)return;
+  const sc=qdg.sc,box=sc?sc.getBoundingClientRect():{top:0,bottom:innerHeight},y=qdg.cy,edge=70;let v=0;
+  if(y<box.top+edge)v=-Math.min(18,(box.top+edge-y)/4);else if(y>box.bottom-edge)v=Math.min(18,(y-(box.bottom-edge))/4);
+  if(v){if(sc)sc.scrollTop+=v;else window.scrollBy(0,v);qMove()}
+  qdg.raf=requestAnimationFrame(qAuto);
+}
+function qDrop(cancel){
+  if(!qdg)return;
+  clearTimeout(qdg.t);
+  const d=qdg;qdg=null;
+  if(!d.active)return;
+  cancelAnimationFrame(d.raf);
+  d.items.forEach(x=>{x.style.transform='';x.style.transition='';x.style.zIndex='';x.style.opacity=''});
+  d.el.classList.remove('qlift');
+  if(d.sc)d.sc.style.scrollSnapType='';
+  lpFired=true;
+  if(cancel||d.t2===d.i){if(d.sc)qFx(d.sc);return}
+  const ids=d.items.map(x=>x.dataset.qid),mv=ids.splice(d.i,1)[0];
+  ids.splice(d.t2,0,mv);
+  reorder(ql,ids);qi=d.t2;save();render();toast('Quote moved');
+}
+document.addEventListener('pointermove',e=>{
+  if(!qdg)return;
+  if(!qdg.active){if(Math.abs(e.clientX-qdg.x)>8||Math.abs(e.clientY-qdg.y)>8){clearTimeout(qdg.t);qdg=null}return}
+  qdg.cy=e.clientY;qMove();
+});
+['pointerup','pointercancel'].forEach(n=>document.addEventListener(n,()=>qDrop(n==='pointercancel')));
+document.addEventListener('touchmove',e=>{if(qdg&&qdg.active)e.preventDefault()},{passive:false});
 setInterval(()=>{document.querySelectorAll('.live').forEach(el=>{el.textContent=clk(Date.now()-new Date(el.dataset.s))})},1000);
 const lpCancel=()=>{clearTimeout(lpT);lpT=null};
 document.addEventListener('pointerdown',e=>{
@@ -966,7 +1033,7 @@ document.addEventListener('pointerdown',e=>{
 });
 document.addEventListener('pointermove',e=>{if(lpT&&(Math.abs(e.clientX-lpX)>10||Math.abs(e.clientY-lpY)>10))lpCancel()});
 ['pointerup','pointercancel'].forEach(n=>document.addEventListener(n,lpCancel));
-document.addEventListener('contextmenu',e=>{if(e.target.closest('.card,.grip'))e.preventDefault()});
+document.addEventListener('contextmenu',e=>{if(e.target.closest('.card,.grip,.qc,.qrow'))e.preventDefault()});
 let dip=null;
 const isiOS=/iphone|ipad|ipod/i.test(navigator.userAgent),isApp=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true;
 const showInst=v=>{const b=document.getElementById('ib');if(b)b.hidden=!v||isApp};
